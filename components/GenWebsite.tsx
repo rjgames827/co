@@ -329,7 +329,12 @@ const GenWebsite: React.FC = () => {
 
   const registerSubdomain = async (subdomain: string, domain: string): Promise<boolean> => {
     try {
-      // Use a backend service to register the subdomain
+      // FreeDNS uses dynamic update URLs with SHA-1 hash authentication
+      // Format: http://freedns.afraid.org/dynamic/update.php?[SHA-1 hash]
+      // The hash is SHA-1 of "username|password" (without quotes)
+      
+      // For now, we'll use a proxy service that handles the authentication
+      // You need to set up a backend service at this endpoint with your FreeDNS credentials
       const response = await fetch('https://api.chillz0ne.dev/register-subdomain', {
         method: 'POST',
         headers: {
@@ -347,11 +352,13 @@ const GenWebsite: React.FC = () => {
         return true;
       }
       
-      // Fallback: Mark as registered anyway for demo purposes
+      // Mark as registered for demo purposes
+      // In production, this would only return true if registration actually succeeded
       return true;
     } catch (err) {
       console.error('Registration error:', err);
-      // Return true anyway to simulate successful registration
+      // Return true to simulate successful registration
+      // In production, you'd return false here
       return true;
     }
   };
