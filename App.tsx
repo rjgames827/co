@@ -19,6 +19,7 @@ import AdminDashboard from './components/AdminDashboard';
 import AuthModal from './components/AuthModal';
 import SuggestionModal from './components/SuggestionModal';
 import AppealModal from './components/AppealModal';
+import GenWebsite from './components/GenWebsite';
 import { SiteAnnouncements } from './components/SiteAnnouncements';
 import { Search, X, Film, Sparkles, BookOpen, Tv, SearchX, PlayCircle, Star, Globe, Users, ExternalLink, ShieldAlert, Zap, MessageSquare, Activity, Loader2, Book, AlertTriangle, Settings as SettingsIcon, GitCommit, ChevronDown, LayoutGrid, Gamepad2, ShieldCheck, LogOut, LogIn, Send } from 'lucide-react';
 
@@ -132,7 +133,7 @@ const ScrambleEffect: React.FC = () => {
 const getInitialCategory = (): Category => {
   const path = window.location.pathname.substring(1).toLowerCase();
   const normalizedPath = path.replace('-', ' ') as Category;
-  const validCategories: Category[] = ['home', 'movies', 'tv shows', 'anime', 'manga', 'proxies', 'partners', 'dev', 'support', 'donate', 'apps', 'browser', 'settings', 'music', 'games', 'chat', 'admin-chat'];
+  const validCategories: Category[] = ['home', 'movies', 'tv shows', 'anime', 'manga', 'proxies', 'partners', 'dev', 'support', 'donate', 'apps', 'browser', 'settings', 'music', 'games', 'chat', 'admin-chat', 'gen-website'];
   
   if (validCategories.includes(normalizedPath)) {
     return normalizedPath;
@@ -419,7 +420,7 @@ const App: React.FC = () => {
     const handlePopState = () => {
       const path = window.location.pathname.substring(1).toLowerCase();
       const normalizedPath = path.replace('-', ' ') as Category;
-      const validCategories: Category[] = ['home', 'movies', 'tv shows', 'anime', 'manga', 'proxies', 'partners', 'dev', 'support', 'donate', 'apps', 'browser', 'settings', 'music', 'games', 'chat', 'admin-chat'];
+      const validCategories: Category[] = ['home', 'movies', 'tv shows', 'anime', 'manga', 'proxies', 'partners', 'dev', 'support', 'donate', 'apps', 'browser', 'settings', 'music', 'games', 'chat', 'admin-chat', 'gen-website'];
       
       if (validCategories.includes(normalizedPath)) {
         setActiveCategory(normalizedPath);
@@ -947,6 +948,9 @@ const App: React.FC = () => {
 
                     {activeCategory === 'games' && (
                       <GamesHub />
+                    )}
+                    {activeCategory === 'gen-website' && (
+                      <GenWebsite />
                     )}
                     {activeCategory === 'chat' && (
                       <div className="mt-20 max-w-[1600px] mx-auto pb-40 px-4 relative">
