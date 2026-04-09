@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, Copy, Trash2, RefreshCw, AlertCircle, CheckCircle2, Loader2, ExternalLink, Zap } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
@@ -11,6 +11,7 @@ interface WebsiteLink {
   createdAt: { toDate: () => Date };
   createdBy: string;
   registered?: boolean;
+  updateUrl?: string;
 }
 
 const GenWebsite: React.FC = () => {
@@ -21,271 +22,94 @@ const GenWebsite: React.FC = () => {
   const [generatingLink, setGeneratingLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [availableSubdomains, setAvailableSubdomains] = useState<any[]>([]);
+  const [loadingSubdomains, setLoadingSubdomains] = useState(true);
+
+  // Fetch available subdomains from FreeDNS API
+  useEffect(() => {
+    const fetchSubdomains = async () => {
+      try {
+        const response = await fetch('https://freedns.afraid.org/api/?action=getdyndns&v=2&sha=9f1a72e70c908ad4f3a6419a9cf5da4bd60deca3&style=xml');
+        const xmlText = await response.text();
+        
+        // Parse XML to extract subdomains
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+        const items = xmlDoc.getElementsByTagName('item');
+        
+        const subdomains = [];
+        for (let i = 0; i < items.length; i++) {
+          const host = items[i].getElementsByTagName('host')[0]?.textContent;
+          const address = items[i].getElementsByTagName('address')[0]?.textContent;
+          const url = items[i].getElementsByTagName('url')[0]?.textContent;
+          
+          if (host && url) {
+            subdomains.push({
+              host: host,
+              address: address,
+              updateUrl: url,
+              fullUrl: `https://${host}`
+            });
+          }
+        }
+        
+        setAvailableSubdomains(subdomains);
+        console.log('Loaded subdomains:', subdomains);
+      } catch (err) {
+        console.error('Failed to fetch subdomains:', err);
+        // Fallback to hardcoded subdomains
+        setAvailableSubdomains([
+          {
+            host: 'chillz0ne.chickenkiller.com',
+            address: 'https://chillz0ne.dev/chat',
+            updateUrl: 'https://freedns.afraid.org/dynamic/update.php?MUtMRzZnbmtqSmZjSUhnNU4xUW1UcHkwOjI1NjM4MDM3',
+            fullUrl: 'https://chillz0ne.chickenkiller.com'
+          },
+          {
+            host: 'dfsfdsfsd.chickenkiller.com',
+            address: 'https://chillz0ne.dev/chat',
+            updateUrl: 'https://freedns.afraid.org/dynamic/update.php?MUtMRzZnbmtqSmZjSUhnNU4xUW1UcHkwOjI1NjM4MTg0',
+            fullUrl: 'https://dfsfdsfsd.chickenkiller.com'
+          },
+          {
+            host: 'chillz0ne.crabdance.com',
+            address: 'https://chillz0ne.dev/chat',
+            updateUrl: 'https://freedns.afraid.org/dynamic/update.php?MUtMRzZnbmtqSmZjSUhnNU4xUW1UcHkwOjI1NjM3MDcw',
+            fullUrl: 'https://chillz0ne.crabdance.com'
+          }
+        ]);
+      } finally {
+        setLoadingSubdomains(false);
+      }
+    };
+
+    fetchSubdomains();
+  }, []);
 
   const generateRandomLink = () => {
-    // Real free domains from FreeDNS (afraid.org)
-    const freeDomains = [
-      'mooo.com',
-      'chickenkiller.com',
-      'crabdance.com',
-      'ignorelist.com',
-      'jkub.com',
-      'mywire.org',
-      'redirectme.net',
-      'servebeer.com',
-      'serveftp.com',
-      'servegame.com',
-      'stuff-4-sale.us',
-      'ygto.com',
-      'zapto.org',
-      'ddns.net',
-      'dnsalias.com',
-      'dnsalias.net',
-      'dnsalias.org',
-      'dnsdojo.com',
-      'dnsdojo.net',
-      'dnsdojo.org',
-      'does-it.net',
-      'doesntexist.com',
-      'doesntexist.org',
-      'dontexist.com',
-      'dontexist.net',
-      'dontexist.org',
-      'doomdns.com',
-      'doomdns.org',
-      'dvrdns.org',
-      'dyn-o-saur.com',
-      'dynalias.com',
-      'dynalias.net',
-      'dynalias.org',
-      'dynathome.net',
-      'dyndns.org',
-      'dyndns-at-home.com',
-      'dyndns-at-work.com',
-      'dyndns-blog.com',
-      'dyndns-free.com',
-      'dyndns-home.com',
-      'dyndns-ip.com',
-      'dyndns-mail.com',
-      'dyndns-office.com',
-      'dyndns-pics.com',
-      'dyndns-remote.com',
-      'dyndns-server.com',
-      'dyndns-web.com',
-      'dyndns-wiki.com',
-      'dyndns-work.com',
-      'est-a-la-maison.com',
-      'est-a-la-masion.com',
-      'est-le-patron.com',
-      'est-mon-blogueur.com',
-      'from-ak.com',
-      'from-al.com',
-      'from-ar.com',
-      'from-ca.com',
-      'from-co.net',
-      'from-ct.com',
-      'from-dc.com',
-      'from-de.com',
-      'from-fl.com',
-      'from-ga.com',
-      'from-hi.com',
-      'from-ia.com',
-      'from-id.com',
-      'from-il.com',
-      'from-in.com',
-      'from-ks.com',
-      'from-ky.com',
-      'from-ma.com',
-      'from-md.com',
-      'from-mi.com',
-      'from-mn.com',
-      'from-mo.com',
-      'from-ms.com',
-      'from-mt.com',
-      'from-nc.com',
-      'from-nd.com',
-      'from-ne.com',
-      'from-nh.com',
-      'from-nj.com',
-      'from-nm.com',
-      'from-nv.com',
-      'from-oh.com',
-      'from-ok.com',
-      'from-or.com',
-      'from-pa.com',
-      'from-pr.com',
-      'from-ri.com',
-      'from-sc.com',
-      'from-sd.com',
-      'from-tn.com',
-      'from-tx.com',
-      'from-ut.com',
-      'from-va.com',
-      'from-vt.com',
-      'from-wa.com',
-      'from-wi.com',
-      'from-wv.com',
-      'from-wy.com',
-      'getmyip.com',
-      'gotdns.com',
-      'gotdns.org',
-      'groks-the.info',
-      'groks-this.info',
-      'here-for-more.info',
-      'homeftp.net',
-      'homeftp.org',
-      'homeip.net',
-      'homelinux.com',
-      'homelinux.net',
-      'homelinux.org',
-      'homeunix.com',
-      'homeunix.net',
-      'homeunix.org',
-      'iamallama.com',
-      'in-the-band.net',
-      'is-a-anarchist.com',
-      'is-a-blogger.com',
-      'is-a-bookkeeper.com',
-      'is-a-bruinsfan.org',
-      'is-a-bulls-fan.com',
-      'is-a-candidate.org',
-      'is-a-caterer.com',
-      'is-a-celticsfan.org',
-      'is-a-chef.com',
-      'is-a-chef.net',
-      'is-a-chef.org',
-      'is-a-conservative.com',
-      'is-a-cpa.com',
-      'is-a-cubicle-slave.com',
-      'is-a-democrat.com',
-      'is-a-designer.com',
-      'is-a-doctor.com',
-      'is-a-financialadvisor.com',
-      'is-a-geek.com',
-      'is-a-geek.net',
-      'is-a-geek.org',
-      'is-a-green.com',
-      'is-a-guru.com',
-      'is-a-hard-worker.com',
-      'is-a-hunter.com',
-      'is-a-knight.org',
-      'is-a-landscaper.com',
-      'is-a-lawyer.com',
-      'is-a-liberal.com',
-      'is-a-libertarian.com',
-      'is-a-linux-user.org',
-      'is-a-llama.com',
-      'is-a-musician.com',
-      'is-a-nascarfan.com',
-      'is-a-nurse.com',
-      'is-a-painter.com',
-      'is-a-patsfan.org',
-      'is-a-personaltrainer.com',
-      'is-a-photographer.com',
-      'is-a-player.com',
-      'is-a-republican.com',
-      'is-a-rockstar.com',
-      'is-a-socialist.com',
-      'is-a-soxfan.org',
-      'is-a-student.com',
-      'is-a-teacher.com',
-      'is-a-techie.com',
-      'is-a-therapist.com',
-      'is-an-accountant.com',
-      'is-an-actor.com',
-      'is-an-actress.com',
-      'is-an-anarchist.com',
-      'is-an-artist.com',
-      'is-an-engineer.com',
-      'is-an-entertainer.com',
-      'is-by.us',
-      'is-certified.com',
-      'is-found.org',
-      'is-gone.com',
-      'is-into-anime.com',
-      'is-into-cars.com',
-      'is-into-cartoons.com',
-      'is-into-games.com',
-      'is-leet.com',
-      'is-lost.org',
-      'is-not-certified.com',
-      'is-saved.org',
-      'is-slick.com',
-      'is-uberleet.com',
-      'is-very-bad.org',
-      'is-very-evil.org',
-      'is-very-good.org',
-      'is-very-nice.org',
-      'is-very-sweet.org',
-      'is-with-theband.com',
-      'isa-geek.com',
-      'isa-geek.net',
-      'isa-geek.org',
-      'isa-hockeynut.com',
-      'issmarterthanyou.com',
-      'isteingeek.de',
-      'istmein.de',
-      'kicks-ass.net',
-      'kicks-ass.org',
-      'knowsitall.info',
-      'land-4-sale.us',
-      'lebtimnetz.de',
-      'leitungsen.de',
-      'likes-pie.com',
-      'likescandy.com',
-      'merseine.nu',
-      'mine.nu',
-      'misconfused.org',
-      'mypets.ws',
-      'myphotos.cc',
-      'neat-url.com',
-      'office-on-the.net',
-      'on-the-web.tv',
-      'podzone.net',
-      'podzone.org',
-      'readmyblog.org',
-      'saves-the-whales.com',
-      'scrapper-site.net',
-      'scrapping.cc',
-      'selfip.biz',
-      'selfip.com',
-      'selfip.info',
-      'selfip.net',
-      'selfip.org',
-      'sells-for-less.com',
-      'sells-for-u.com',
-      'sells-it.net',
-      'sellsyourhome.org',
-      'servebbs.com',
-      'servebbs.net',
-      'servebbs.org',
-      'serveftp.net',
-      'servegame.org',
-      'shacknet.nu',
-      'simple-url.com',
-      'space-to-rent.com',
-      'stuff-4-sale.org',
-      'teaches-yoga.com',
-      'thruhere.net',
-      'traeumtgerade.de',
-      'webhop.biz',
-      'webhop.info',
-      'webhop.net',
-      'webhop.org',
-      'worse-than.tv',
-      'writesthisblog.com'
-    ];
+    // Use dynamically loaded subdomains from FreeDNS API
+    if (availableSubdomains.length === 0) {
+      // Fallback if API hasn't loaded yet
+      return {
+        subdomain: 'chillz0ne.chickenkiller.com',
+        domain: 'chickenkiller.com',
+        fullUrl: 'https://chillz0ne.chickenkiller.com',
+        updateUrl: 'https://freedns.afraid.org/dynamic/update.php?MUtMRzZnbmtqSmZjSUhnNU4xUW1UcHkwOjI1NjM4MDM3'
+      };
+    }
     
-    const adjectives = ['cool', 'awesome', 'super', 'mega', 'ultra', 'hyper', 'cyber', 'digital', 'virtual', 'quantum', 'stellar', 'cosmic', 'neon', 'turbo', 'epic', 'my', 'the', 'best', 'top', 'pro', 'new', 'fast', 'smart', 'tech', 'web'];
-    const nouns = ['zone', 'hub', 'space', 'world', 'realm', 'domain', 'portal', 'nexus', 'core', 'base', 'site', 'web', 'net', 'link', 'page', 'server', 'host', 'cloud', 'app', 'dev', 'code', 'data', 'info', 'blog', 'home'];
+    // Return a random subdomain from your FreeDNS account
+    const randomSubdomain = availableSubdomains[Math.floor(Math.random() * availableSubdomains.length)];
+    const parts = randomSubdomain.host.split('.');
+    const subdomain = parts[0];
+    const domain = parts.slice(1).join('.');
     
-    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-    const randomNumber = Math.floor(Math.random() * 999);
-    const randomDomain = freeDomains[Math.floor(Math.random() * freeDomains.length)];
-    
-    const subdomain = `${randomAdjective}${randomNoun}${randomNumber}`;
-    return { subdomain, domain: randomDomain, fullUrl: `https://${subdomain}.${randomDomain}` };
+    return {
+      subdomain: randomSubdomain.host,
+      domain: domain,
+      fullUrl: randomSubdomain.fullUrl,
+      updateUrl: randomSubdomain.updateUrl
+    };
   };
 
   const handleGenerateLink = async () => {
@@ -294,72 +118,30 @@ const GenWebsite: React.FC = () => {
     setSuccess(null);
 
     try {
-      const { subdomain, domain, fullUrl } = generateRandomLink();
-      
-      // Automatically register the subdomain
-      const registrationSuccess = await registerSubdomain(subdomain, domain);
+      const linkData = generateRandomLink();
       
       const newLink: WebsiteLink = {
         id: `link-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        subdomain,
-        domain,
-        fullUrl,
+        subdomain: linkData.subdomain,
+        domain: linkData.domain,
+        fullUrl: linkData.fullUrl,
         createdAt: { toDate: () => new Date() },
         createdBy: 'user',
-        registered: registrationSuccess
+        registered: true,
+        updateUrl: linkData.updateUrl
       };
 
       const updatedLinks = [newLink, ...websiteLinks];
       setWebsiteLinks(updatedLinks);
       localStorage.setItem('chillzone_website_links', JSON.stringify(updatedLinks));
 
-      if (registrationSuccess) {
-        setSuccess(`✓ ${fullUrl} created and registered! It will be live in 5-10 minutes.`);
-      } else {
-        setSuccess(`Link generated: ${fullUrl} - Registration pending...`);
-      }
+      setSuccess(`✓ ${linkData.fullUrl} is ready! Click to test it now.`);
       setTimeout(() => setSuccess(null), 5000);
     } catch (err) {
       setError('Failed to generate link.');
       console.error(err);
     } finally {
       setGeneratingLink(false);
-    }
-  };
-
-  const registerSubdomain = async (subdomain: string, domain: string): Promise<boolean> => {
-    try {
-      // FreeDNS uses dynamic update URLs with SHA-1 hash authentication
-      // Format: http://freedns.afraid.org/dynamic/update.php?[SHA-1 hash]
-      // The hash is SHA-1 of "username|password" (without quotes)
-      
-      // For now, we'll use a proxy service that handles the authentication
-      // You need to set up a backend service at this endpoint with your FreeDNS credentials
-      const response = await fetch('https://api.chillz0ne.dev/register-subdomain', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subdomain: subdomain.split('.')[0],
-          domain: domain,
-          destination: 'https://chillz0ne.dev/',
-          type: 'URL'
-        })
-      });
-
-      if (response.ok) {
-        return true;
-      }
-      
-      // Mark as registered for demo purposes
-      // In production, this would only return true if registration actually succeeded
-      return true;
-    } catch (err) {
-      console.error('Registration error:', err);
-      // Return true to simulate successful registration
-      // In production, you'd return false here
-      return true;
     }
   };
 
@@ -392,11 +174,12 @@ const GenWebsite: React.FC = () => {
         <h1 className="text-6xl font-black uppercase italic tracking-tighter">
           Website Link <span className="text-accent">Generator</span>
         </h1>
-        <p className="text-neutral-400 text-sm">Instantly create working links that redirect to ChillZone</p>
+        <p className="text-neutral-400 text-sm">Get instant working links that redirect to ChillZone</p>
         <div className="max-w-3xl mx-auto mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
           <p className="text-green-400 text-xs font-medium leading-relaxed">
-            ⚡ Automatic Registration Enabled! Click "Generate Link" and your subdomain will be automatically registered and ready to use in 5-10 minutes. All links redirect to{' '}
-            <span className="text-green-300 font-bold">https://chillz0ne.dev/</span>
+            ✓ All links are pre-registered and working! They redirect to{' '}
+            <span className="text-green-300 font-bold">https://chillz0ne.dev/chat</span>
+            {' '}instantly. Just click "Generate Link" and start using it!
           </p>
         </div>
       </motion.div>
@@ -410,24 +193,26 @@ const GenWebsite: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-black uppercase tracking-widest flex items-center gap-2">
-              <Zap size={20} className="text-accent" />
-              Auto-Generate & Register
+              <Link size={20} className="text-accent" />
+              Generate Custom Link
             </h3>
-            <p className="text-xs text-neutral-500 mt-2">One click to create and register a working subdomain</p>
+            <p className="text-xs text-neutral-500 mt-2">
+              {loadingSubdomains ? 'Loading your subdomains...' : `${availableSubdomains.length} active subdomains available`}
+            </p>
           </div>
           <button
             onClick={handleGenerateLink}
-            disabled={generatingLink}
+            disabled={generatingLink || loadingSubdomains}
             className="flex items-center gap-2 bg-accent hover:bg-accent/80 disabled:opacity-50 text-white font-black uppercase tracking-widest px-8 py-4 rounded-xl transition-all shadow-lg shadow-accent/20"
           >
-            {generatingLink ? (
+            {generatingLink || loadingSubdomains ? (
               <>
                 <Loader2 className="animate-spin" size={20} />
-                Creating...
+                {loadingSubdomains ? 'Loading...' : 'Creating...'}
               </>
             ) : (
               <>
-                <Zap size={20} />
+                <RefreshCw size={20} />
                 Generate Link
               </>
             )}
@@ -463,29 +248,40 @@ const GenWebsite: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-black uppercase tracking-widest text-neutral-500">
-            Active Links ({websiteLinks.length})
+            Generated Links ({websiteLinks.length})
           </h3>
-          <div className="flex items-center gap-2 text-xs text-green-400">
-            <Zap size={14} />
-            <span className="font-bold uppercase tracking-widest">Auto-Registered</span>
-          </div>
+          <a
+            href="https://freedns.afraid.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-bold uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2"
+          >
+            Go to FreeDNS
+            <ExternalLink size={12} />
+          </a>
         </div>
         
         {websiteLinks.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-20 space-y-4"
+            className="text-center py-20 space-y-6"
           >
             <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto border border-white/10">
-              <Zap size={32} className="text-neutral-600" />
+              <Zap size={32} className="text-accent" />
             </div>
             <p className="text-neutral-600 italic text-sm">
-              No links yet. Click "Generate Link" to create one instantly!
+              No links yet. Click "Generate Link" to get a working ChillZone URL!
             </p>
-            <p className="text-neutral-500 text-xs max-w-md mx-auto">
-              Each link is automatically registered and will redirect to ChillZone within 5-10 minutes
-            </p>
+            <div className="max-w-lg mx-auto mt-6 p-6 bg-green-500/10 border border-green-500/20 rounded-xl">
+              <p className="text-green-400 text-xs font-bold mb-3">⚡ Instant Links:</p>
+              <ul className="text-green-300 text-xs space-y-2 text-left">
+                <li>• All links are already registered and working</li>
+                <li>• Redirects to ChillZone chat instantly</li>
+                <li>• No setup or waiting required</li>
+                <li>• Share with friends to access ChillZone</li>
+              </ul>
+            </div>
           </motion.div>
         ) : (
           <div className="grid gap-4">
@@ -511,7 +307,7 @@ const GenWebsite: React.FC = () => {
                       >
                         {link.fullUrl}
                         <span className="text-[10px] font-black uppercase tracking-widest bg-green-500/20 text-green-500 px-2 py-1 rounded border border-green-500/30">
-                          ✓ Live
+                          ✓ Active
                         </span>
                       </a>
                       <div className="flex items-center gap-2 mt-1">
@@ -530,6 +326,16 @@ const GenWebsite: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                  <a
+                    href={link.fullUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-3 rounded-xl bg-accent text-white hover:bg-accent/80 transition-all flex items-center gap-2 font-bold uppercase tracking-widest text-xs"
+                    title="Open Link"
+                  >
+                    <ExternalLink size={16} />
+                    Open Link
+                  </a>
                   <button 
                     onClick={() => handleCopyLink(link.fullUrl)}
                     className="p-3 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-all"
@@ -537,15 +343,6 @@ const GenWebsite: React.FC = () => {
                   >
                     <Copy size={16} />
                   </button>
-                  <a
-                    href={link.fullUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-3 rounded-xl bg-green-500/10 text-green-500 hover:bg-green-500/20 transition-all"
-                    title="Open Link"
-                  >
-                    <ExternalLink size={16} />
-                  </a>
                   <button 
                     onClick={() => handleDeleteLink(link.id)}
                     className="p-3 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all"
