@@ -114,27 +114,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
   const [appealFilter, setAppealFilter] = useState<'all' | 'pending' | 'approved' | 'denied'>('all');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'co-owner' | 'owner' | 'user' | 'donator' | 'tester'>('all');
-  const [websiteLinks, setWebsiteLinks] = useState<WebsiteLink[]>([]);
+  const [websiteLinks, setWebsiteLinks] = useState<WebsiteLink[]>(() => {
+    const saved = localStorage.getItem('chillzone_website_links');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [generatingLink, setGeneratingLink] = useState(false);
 
   useEffect(() => {
-    if (activeTab === 'analytics' || activeTab === 'upload' || isQuotaExceeded) return;
+    if (activeTab === 'analytics' || activeTab === 'upload' || activeTab === 'links' || isQuotaExceeded) return;
 
     setIsLoading(true);
     let unsubscribe: () => void = () => {};
 
     try {
-      if (activeTab === 'links') {
-        const q = query(collection(db, 'website_links'), orderBy('createdAt', 'desc'), limit(100));
-        unsubscribe = onSnapshot(q, (snapshot) => {
-          console.log(`[AdminDashboard] Website Links snapshot received: ${snapshot.size} docs`);
-          setWebsiteLinks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as WebsiteLink[]);
-          setIsLoading(false);
-        }, (err) => {
-          handleFirestoreError(err, OperationType.LIST, 'website_links');
-          setIsLoading(false);
-        });
-      } else if (activeTab === 'announcements') {
+      if (activeTab === 'announcements') {
         const q = query(collection(db, 'site_announcements'), orderBy('createdAt', 'desc'), limit(100));
         unsubscribe = onSnapshot(q, (snapshot) => {
           console.log(`[AdminDashboard] Announcements snapshot received: ${snapshot.size} docs`);
@@ -456,12 +449,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
     return { subdomain, domain: randomDomain, fullUrl: `https://${subdomain}.${randomDomain}` };
   };
 
-  const handleGenerateLink = async () => {
-    if (isQuotaExceeded) {
-      setError('Database quota exceeded. Cannot generate link.');
-      return;
-    }
-
+  const handleGenerateLink = () => {
     setGeneratingLink(true);
     setError(null);
     setSuccess(null);
@@ -469,32 +457,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
     try {
       const { subdomain, domain, fullUrl } = generateRandomLink();
       
-      await addDoc(collection(db, 'website_links'), {
+      const newLink: WebsiteLink = {
+        id: `link-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         subdomain,
         domain,
         fullUrl,
-        createdAt: serverTimestamp(),
-        createdBy: auth.currentUser?.uid || 'unknown'
-      });
+        createdAt: { toDate: () => new Date() } as Timestamp,
+        createdBy: auth.currentUser?.uid || 'guest'
+      };
+
+      const updatedLinks = [newLink, ...websiteLinks];
+      setWebsiteLinks(updatedLinks);
+      localStorage.setItem('chillzone_website_links', JSON.stringify(updatedLinks));
 
       setSuccess('New website link generated successfully!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError('Failed to generate link.');
-      handleFirestoreError(err, OperationType.CREATE, 'website_links');
+      console.error(err);
     } finally {
       setGeneratingLink(false);
     }
   };
 
-  const handleDeleteLink = async (id: string) => {
-    if (isQuotaExceeded) return;
+  const handleDeleteLink = (id: string) => {
     try {
-      await deleteDoc(doc(db, 'website_links', id));
+      const updatedLinks = websiteLinks.filter(link => link.id !== id);
+      setWebsiteLinks(updatedLinks);
+      localStorage.setItem('chillzone_website_links', JSON.stringify(updatedLinks));
       setSuccess('Link deleted successfully!');
       setTimeout(() => setSuccess(null), 2000);
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `website_links/${id}`);
+      setError('Failed to delete link.');
+      console.error(err);
     }
   };
 
