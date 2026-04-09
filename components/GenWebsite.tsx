@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, Copy, Trash2, RefreshCw, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Link, Copy, Trash2, RefreshCw, AlertCircle, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 
 interface WebsiteLink {
@@ -347,7 +347,21 @@ const GenWebsite: React.FC = () => {
         <h1 className="text-6xl font-black uppercase italic tracking-tighter">
           Website Link <span className="text-accent">Generator</span>
         </h1>
-        <p className="text-neutral-400 text-sm">Generate random website URLs instantly - no database required!</p>
+        <p className="text-neutral-400 text-sm">Generate random subdomain ideas using real FreeDNS domains</p>
+        <div className="max-w-3xl mx-auto mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+          <p className="text-blue-400 text-xs font-medium leading-relaxed">
+            💡 These are subdomain suggestions only. To make them work, you need to register them at{' '}
+            <a 
+              href="https://freedns.afraid.org/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-300 underline hover:text-blue-200"
+            >
+              FreeDNS (afraid.org)
+            </a>
+            {' '}for free. Copy a link below and register it to make it live!
+          </p>
+        </div>
       </motion.div>
 
       <motion.div
@@ -360,9 +374,9 @@ const GenWebsite: React.FC = () => {
           <div>
             <h3 className="text-lg font-black uppercase tracking-widest flex items-center gap-2">
               <Link size={20} className="text-accent" />
-              Generate New Link
+              Generate Subdomain Ideas
             </h3>
-            <p className="text-xs text-neutral-500 mt-2">Click the button to create a random website URL</p>
+            <p className="text-xs text-neutral-500 mt-2">Get random subdomain suggestions using FreeDNS domains</p>
           </div>
           <button
             onClick={handleGenerateLink}
@@ -377,7 +391,7 @@ const GenWebsite: React.FC = () => {
             ) : (
               <>
                 <RefreshCw size={20} />
-                Generate Link
+                Generate Idea
               </>
             )}
           </button>
@@ -412,8 +426,17 @@ const GenWebsite: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-black uppercase tracking-widest text-neutral-500">
-            Generated Links ({websiteLinks.length})
+            Subdomain Ideas ({websiteLinks.length})
           </h3>
+          <a
+            href="https://freedns.afraid.org/subdomain/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-bold uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2"
+          >
+            Register on FreeDNS
+            <ExternalLink size={12} />
+          </a>
         </div>
         
         {websiteLinks.length === 0 ? (
@@ -426,7 +449,19 @@ const GenWebsite: React.FC = () => {
               <Link size={32} className="text-neutral-600" />
             </div>
             <p className="text-neutral-600 italic text-sm">
-              No links generated yet. Click "Generate Link" to create one!
+              No subdomain ideas yet. Click "Generate Idea" to create one!
+            </p>
+            <p className="text-neutral-500 text-xs max-w-md mx-auto">
+              After generating, register your favorite subdomain at{' '}
+              <a 
+                href="https://freedns.afraid.org/subdomain/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 underline hover:text-blue-300"
+              >
+                FreeDNS
+              </a>
+              {' '}to make it live
             </p>
           </motion.div>
         ) : (
@@ -449,9 +484,12 @@ const GenWebsite: React.FC = () => {
                         href={link.fullUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-white font-bold text-lg hover:text-accent transition-colors flex items-center gap-2"
+                        className="text-white font-bold text-lg hover:text-accent transition-colors flex items-center gap-2 group"
                       >
                         {link.fullUrl}
+                        <span className="text-[10px] font-black uppercase tracking-widest bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded border border-yellow-500/30">
+                          Not Registered
+                        </span>
                       </a>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs font-mono text-neutral-500">
@@ -469,6 +507,15 @@ const GenWebsite: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                  <a
+                    href="https://freedns.afraid.org/subdomain/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-3 rounded-xl bg-green-500/10 text-green-500 hover:bg-green-500/20 transition-all"
+                    title="Register on FreeDNS"
+                  >
+                    <ExternalLink size={16} />
+                  </a>
                   <button 
                     onClick={() => handleCopyLink(link.fullUrl)}
                     className="p-3 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-all"
