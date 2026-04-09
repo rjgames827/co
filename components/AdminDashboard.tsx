@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2, Edit2, Save, AlertCircle, CheckCircle2, ShieldCheck, Users, Megaphone, Activity, Send, Check, Ban, UserCheck, Upload, Loader2 } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, Save, AlertCircle, CheckCircle2, ShieldCheck, Users, Megaphone, Activity, Send, Check, Ban, UserCheck, Upload, Loader2, Link, Copy, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { db, auth, OperationType, handleFirestoreError } from '../firebase';
+import { db, auth, OperationType, handleFirestoreError, isQuotaExceeded } from '../firebase';
 import { collection, addDoc, query, orderBy, deleteDoc, doc, updateDoc, serverTimestamp, Timestamp, setDoc, where, getDocs, limit, onSnapshot } from 'firebase/firestore';
 
 interface User {
@@ -48,6 +48,15 @@ interface AllowedAdmin {
   createdAt: Timestamp;
 }
 
+interface WebsiteLink {
+  id: string;
+  subdomain: string;
+  domain: string;
+  fullUrl: string;
+  createdAt: Timestamp;
+  createdBy: string;
+}
+
 interface AdminDashboardProps {
   onClose: () => void;
   isSuperAdmin: boolean;
@@ -65,6 +74,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
   const handleUpload = async () => {
     if (!uploadTitle || !driveLink || !imageLink) {
       setError('Please fill in all fields.');
+      return;
+    }
+    if (isQuotaExceeded) {
+      setError('Database quota exceeded. Cannot upload content.');
       return;
     }
     try {
@@ -95,31 +108,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'announcements' | 'suggestions' | 'users' | 'admins' | 'analytics' | 'appeals' | 'banned' | 'upload'>('announcements');
+  const [activeTab, setActiveTab] = useState<'announcements' | 'suggestions' | 'users' | 'admins' | 'analytics' | 'appeals' | 'banned' | 'upload' | 'links'>('links');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestionFilter, setSuggestionFilter] = useState<'all' | 'pending' | 'reviewed'>('all');
   const [appealFilter, setAppealFilter] = useState<'all' | 'pending' | 'approved' | 'denied'>('all');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'co-owner' | 'owner' | 'user' | 'donator' | 'tester'>('all');
+  const [websiteLinks, setWebsiteLinks] = useState<WebsiteLink[]>([]);
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   useEffect(() => {
-    if (activeTab === 'analytics' || activeTab === 'upload') return;
+    if (activeTab === 'analytics' || activeTab === 'upload' || isQuotaExceeded) return;
 
     setIsLoading(true);
-    setError(null); // Clear previous errors
     let unsubscribe: () => void = () => {};
 
     try {
-      if (activeTab === 'announcements') {
+      if (activeTab === 'links') {
+        const q = query(collection(db, 'website_links'), orderBy('createdAt', 'desc'), limit(100));
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          console.log(`[AdminDashboard] Website Links snapshot received: ${snapshot.size} docs`);
+          setWebsiteLinks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as WebsiteLink[]);
+          setIsLoading(false);
+        }, (err) => {
+          handleFirestoreError(err, OperationType.LIST, 'website_links');
+          setIsLoading(false);
+        });
+      } else if (activeTab === 'announcements') {
         const q = query(collection(db, 'site_announcements'), orderBy('createdAt', 'desc'), limit(100));
         unsubscribe = onSnapshot(q, (snapshot) => {
           console.log(`[AdminDashboard] Announcements snapshot received: ${snapshot.size} docs`);
           setAnnouncements(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Announcement[]);
           setIsLoading(false);
-          setError(null);
         }, (err) => {
-          console.error('[AdminDashboard] Announcements error:', err);
-          setError('Permission denied. Please update Firestore rules to grant admin access.');
           handleFirestoreError(err, OperationType.LIST, 'site_announcements');
           setIsLoading(false);
         });
@@ -129,10 +150,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
           console.log(`[AdminDashboard] Suggestions snapshot received: ${snapshot.size} docs`);
           setSuggestions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Suggestion[]);
           setIsLoading(false);
-          setError(null);
         }, (err) => {
-          console.error('[AdminDashboard] Suggestions error:', err);
-          setError('Permission denied. Please update Firestore rules to grant admin access.');
           handleFirestoreError(err, OperationType.LIST, 'suggestions');
           setIsLoading(false);
         });
@@ -142,10 +160,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
           console.log(`[AdminDashboard] AllowedAdmins snapshot received: ${snapshot.size} docs`);
           setAllowedAdmins(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as AllowedAdmin[]);
           setIsLoading(false);
-          setError(null);
         }, (err) => {
-          console.error('[AdminDashboard] AllowedAdmins error:', err);
-          setError('Permission denied. Please update Firestore rules to grant admin access.');
           handleFirestoreError(err, OperationType.LIST, 'allowed_admins');
           setIsLoading(false);
         });
@@ -159,10 +174,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
             ...doc.data() 
           })) as User[]);
           setIsLoading(false);
-          setError(null);
         }, (err) => {
-          console.error('[AdminDashboard] Users error:', err);
-          setError('Permission denied. Please update Firestore rules to grant admin access.');
           handleFirestoreError(err, OperationType.LIST, 'users');
           setIsLoading(false);
         });
@@ -172,16 +184,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
           console.log(`[AdminDashboard] Appeals snapshot received: ${snapshot.size} docs`);
           setAppeals(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Appeal[]);
           setIsLoading(false);
-          setError(null);
         }, (err) => {
-          console.error('[AdminDashboard] Appeals error:', err);
-          setError('Permission denied. Please update Firestore rules to grant admin access.');
           handleFirestoreError(err, OperationType.LIST, 'appeals');
           setIsLoading(false);
         });
       }
     } catch (err) {
-      console.error("Error setting up listeners:", err);
+      if (!String(err).includes('Quota limit exceeded') && !String(err).includes('Quota exceeded')) {
+        console.error("Error setting up listeners:", err);
+      }
       setIsLoading(false);
     }
 
@@ -191,6 +202,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
   const handleAddAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newContent.trim()) return;
+
+    if (isQuotaExceeded) {
+      setError('Database quota exceeded. Cannot post announcement.');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -217,6 +233,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
   };
 
   const handleDeleteAnnouncement = async (id: string) => {
+    if (isQuotaExceeded) return;
     try {
       await deleteDoc(doc(db, 'site_announcements', id));
     } catch (err) {
@@ -225,6 +242,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
   };
 
   const toggleAnnouncementStatus = async (id: string, currentStatus: boolean) => {
+    if (isQuotaExceeded) return;
     try {
       await updateDoc(doc(db, 'site_announcements', id), {
         active: !currentStatus
@@ -235,6 +253,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
   };
 
   const handleMarkSuggestionReviewed = async (id: string) => {
+    if (isQuotaExceeded) return;
     try {
       await updateDoc(doc(db, 'suggestions', id), {
         status: 'reviewed'
@@ -245,6 +264,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
   };
 
   const handleDeleteSuggestion = async (id: string) => {
+    if (isQuotaExceeded) return;
     try {
       await deleteDoc(doc(db, 'suggestions', id));
     } catch (err) {
@@ -254,6 +274,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
 
   const handleRemoveAllAdmins = async () => {
     if (!window.confirm('Are you sure you want to remove all other admins and reset all user roles to "user"? This cannot be undone.')) return;
+    if (isQuotaExceeded) {
+      setError('Database quota exceeded.');
+      return;
+    }
     try {
       console.log('Starting admin removal...');
       // 1. Clear allowed_admins
@@ -285,13 +309,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
       setSuccess('All other admins removed and roles reset successfully!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      console.error('Error removing admins:', err);
+      if (!String(err).includes('Quota limit exceeded') && !String(err).includes('Quota exceeded')) {
+        console.error('Error removing admins:', err);
+      }
       setError('Failed to remove admins.');
       handleFirestoreError(err, OperationType.UPDATE, 'users/allowed_admins');
     }
   };
 
   const handleUpdateUserRole = async (uid: string, newRole: 'admin' | 'co-owner' | 'owner' | 'user' | 'donator' | 'tester') => {
+    if (isQuotaExceeded) return;
     // Optimistic update
     setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: newRole } : u));
     
@@ -309,6 +336,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
   };
 
   const handleToggleBan = async (uid: string, currentBanned: boolean) => {
+    if (isQuotaExceeded) return;
     // Optimistic update
     setUsers(prev => prev.map(u => u.uid === uid ? { ...u, banned: !currentBanned } : u));
     
@@ -414,6 +442,68 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
     }
   };
 
+  const generateRandomLink = () => {
+    const adjectives = ['cool', 'awesome', 'super', 'mega', 'ultra', 'hyper', 'cyber', 'digital', 'virtual', 'quantum', 'stellar', 'cosmic', 'neon', 'turbo', 'epic'];
+    const nouns = ['zone', 'hub', 'space', 'world', 'realm', 'domain', 'portal', 'nexus', 'core', 'base', 'site', 'web', 'net', 'link', 'page'];
+    const domains = ['netlify.app', 'vercel.app', 'github.io', 'web.app', 'pages.dev', 'herokuapp.com', 'onrender.com', 'fly.dev'];
+    
+    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+    const randomNumber = Math.floor(Math.random() * 9999);
+    const randomDomain = domains[Math.floor(Math.random() * domains.length)];
+    
+    const subdomain = `${randomAdjective}-${randomNoun}-${randomNumber}`;
+    return { subdomain, domain: randomDomain, fullUrl: `https://${subdomain}.${randomDomain}` };
+  };
+
+  const handleGenerateLink = async () => {
+    if (isQuotaExceeded) {
+      setError('Database quota exceeded. Cannot generate link.');
+      return;
+    }
+
+    setGeneratingLink(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const { subdomain, domain, fullUrl } = generateRandomLink();
+      
+      await addDoc(collection(db, 'website_links'), {
+        subdomain,
+        domain,
+        fullUrl,
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser?.uid || 'unknown'
+      });
+
+      setSuccess('New website link generated successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError('Failed to generate link.');
+      handleFirestoreError(err, OperationType.CREATE, 'website_links');
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const handleDeleteLink = async (id: string) => {
+    if (isQuotaExceeded) return;
+    try {
+      await deleteDoc(doc(db, 'website_links', id));
+      setSuccess('Link deleted successfully!');
+      setTimeout(() => setSuccess(null), 2000);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `website_links/${id}`);
+    }
+  };
+
+  const handleCopyLink = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setSuccess('Link copied to clipboard!');
+    setTimeout(() => setSuccess(null), 2000);
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] text-white">
       {/* Header */}
@@ -438,6 +528,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
       {/* Tabs */}
       <div className="flex border-b border-white/5 px-6 overflow-x-auto custom-scrollbar">
         {[
+          { id: 'links', icon: Link, label: 'Website Links' },
           { id: 'announcements', icon: Megaphone, label: 'Announcements' },
           { id: 'suggestions', icon: Send, label: 'Suggestions' },
           { id: 'appeals', icon: AlertCircle, label: 'Appeals' },
@@ -875,6 +966,115 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
             </div>
           </div>
         )}
+        {activeTab === 'links' && (
+          <div className="space-y-6">
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                    <Link size={16} className="text-accent" />
+                    Generate New Website Link
+                  </h3>
+                  <p className="text-xs text-neutral-500 mt-2">Create random website URLs similar to FreeDNS</p>
+                </div>
+                <button
+                  onClick={handleGenerateLink}
+                  disabled={generatingLink}
+                  className="flex items-center gap-2 bg-accent hover:bg-accent/80 disabled:opacity-50 text-white font-black uppercase tracking-widest px-6 py-3 rounded-xl transition-all shadow-lg shadow-accent/20"
+                >
+                  {generatingLink ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw size={16} />
+                      Generate Link
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {error && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+                    <AlertCircle size={14} />
+                    {error}
+                  </motion.div>
+                )}
+                {success && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 text-green-500 text-xs font-bold bg-green-500/10 p-3 rounded-xl border border-green-500/20">
+                    <CheckCircle2 size={14} />
+                    {success}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-black uppercase tracking-widest text-neutral-500">Generated Links ({websiteLinks.length})</h3>
+              {websiteLinks.length === 0 ? (
+                <div className="text-center py-12 text-neutral-600 italic text-sm">
+                  No links generated yet. Click "Generate Link" to create one!
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {websiteLinks.map((link) => (
+                    <div key={link.id} className="bg-white/5 border border-white/5 rounded-2xl p-5 flex items-center justify-between group hover:border-accent/30 transition-all">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-accent/10 border border-accent/20">
+                            <Link size={16} className="text-accent" />
+                          </div>
+                          <div>
+                            <a 
+                              href={link.fullUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-white font-bold hover:text-accent transition-colors flex items-center gap-2"
+                            >
+                              {link.fullUrl}
+                            </a>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] font-mono text-neutral-500">
+                                {link.subdomain}
+                              </span>
+                              <span className="text-[10px] text-neutral-600">•</span>
+                              <span className="text-[10px] font-mono text-neutral-500">
+                                {link.domain}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-[9px] font-mono text-neutral-600 pl-12">
+                          Created: {link.createdAt?.toDate().toLocaleString() || 'Just now'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        <button 
+                          onClick={() => handleCopyLink(link.fullUrl)}
+                          className="p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-all"
+                          title="Copy Link"
+                        >
+                          <Copy size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteLink(link.id)}
+                          className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all"
+                          title="Delete Link"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'appeals' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">

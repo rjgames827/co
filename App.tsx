@@ -11,7 +11,7 @@ import { GamesHub } from './components/GamesHub';
 import { Category, LibraryItem, StaffMember, Game, FavoriteItem } from './types';
 import { MOVIES_DATA, ANIME_DATA, MANGA_DATA, TV_DATA, STAFF_DATA, PARTNERS_DATA, PROXIES_DATA } from './constants';
 import { useLanguage } from './context/LanguageContext';
-import { auth, logout, db, handleFirestoreError, OperationType } from './firebase';
+import { auth, logout, db, handleFirestoreError, OperationType, isQuotaExceeded } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, updateDoc, onSnapshot, collection, query, orderBy, limit, where, getDocs, deleteDoc } from 'firebase/firestore';
 import ChatRoom from './components/ChatRoom';
@@ -22,7 +22,7 @@ import AppealModal from './components/AppealModal';
 import { SiteAnnouncements } from './components/SiteAnnouncements';
 import { Search, X, Film, Sparkles, BookOpen, Tv, SearchX, PlayCircle, Star, Globe, Users, ExternalLink, ShieldAlert, Zap, MessageSquare, Activity, Loader2, Book, AlertTriangle, Settings as SettingsIcon, GitCommit, ChevronDown, LayoutGrid, Gamepad2, ShieldCheck, LogOut, LogIn, Send } from 'lucide-react';
 
-const DEFAULT_LOGO = "https://files.catbox.moe/4wz029.svg";
+const DEFAULT_LOGO = "https://lh7-rt.googleusercontent.com/sitesz/AClOY7psM7n5cC2oRAQVLVss3LsgYFKWwE-KzTjGQvDYtnnp1f1j-Szl1OH6r1pZTXpsw0t_1es0N4P9E2cBl4Oqs-lOwNJdAt3H5CiGxGZKfBTzaYq_ybiI1qd2dWXWu_GRWMqLDD_3BL9tkNhJBNJhjBuuQWyvP1B19h6v0fblyHBwfxs-94c7?key=IannGxLsV9P5UfJ0NHPqqQ";
 
 const DiscordIcon = ({ size = 20, className = "" }: { size?: number, className?: string }) => (
   <svg 
@@ -51,7 +51,7 @@ const TranslatedText: React.FC<{ text: string }> = ({ text }) => {
       
       // Fast check for cache before calling translateDynamic
       const cacheKey = `${language}:${text}`;
-      const savedCache = JSON.parse(localStorage.getItem('rjpgames_translation_cache') || '{}');
+      const savedCache = JSON.parse(localStorage.getItem('chillzone_translation_cache') || '{}');
       if (savedCache[cacheKey]) {
         if (isMounted) setTranslated(savedCache[cacheKey]);
         return;
@@ -132,25 +132,22 @@ const ScrambleEffect: React.FC = () => {
 const getInitialCategory = (): Category => {
   const path = window.location.pathname.substring(1).toLowerCase();
   const normalizedPath = path.replace('-', ' ') as Category;
-  const validCategories: Category[] = ['home', 'movies', 'tv shows', 'anime', 'manga', 'proxies', 'partners', 'dev', 'support', 'apps', 'browser', 'settings', 'music', 'games', 'chat', 'admin-chat'];
+  const validCategories: Category[] = ['home', 'movies', 'tv shows', 'anime', 'manga', 'proxies', 'partners', 'dev', 'support', 'donate', 'apps', 'browser', 'settings', 'music', 'games', 'chat', 'admin-chat'];
   
   if (validCategories.includes(normalizedPath)) {
     return normalizedPath;
   }
-  return 'dev';
+  return 'donate';
 };
 
 const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<Category>(getInitialCategory);
-  const [isPageLoading, setIsPageLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [proxySearch, setProxySearch] = useState('');
   const [customLogo, setCustomLogo] = useState<string>(DEFAULT_LOGO);
 
   useEffect(() => {
-    setIsPageLoading(true);
     const timer = setTimeout(() => {
-      setIsPageLoading(false);
     }, 800);
     return () => clearTimeout(timer);
   }, [activeCategory]);
@@ -187,7 +184,7 @@ const App: React.FC = () => {
 
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [favorites, setFavorites] = useState<FavoriteItem[]>(() => {
-    const saved = localStorage.getItem('rjpgames_favorites');
+    const saved = localStorage.getItem('chillzone_favorites');
     return saved ? JSON.parse(saved) : [];
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -202,7 +199,9 @@ const App: React.FC = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [quotaError, setQuotaError] = useState<string | null>(null);
+  const [isQuotaExceededUI, setIsQuotaExceededUI] = useState(false);
+  const [showQuotaPopup, setShowQuotaPopup] = useState(false);
+  const [hasShownQuotaPopup, setHasShownQuotaPopup] = useState(false);
   const { t } = useLanguage();
   const [uploads, setUploads] = useState<any[]>([]);
 
@@ -212,14 +211,17 @@ const App: React.FC = () => {
     const path = window.location.pathname.substring(1).toLowerCase().replace('-', ' ');
     
     if (user) {
-      // If logged in and on root, go to dev
-      if (path === '') {
-        navigate('dev');
+      // If logged in and on root or landing on default 'donate', go to chat
+      if (path === '' || (path === 'donate' && activeCategory === 'donate')) {
+        // Only redirect if it's the initial load or they just logged in
+        // We check activeCategory === 'donate' to avoid redirecting if they explicitly navigated there
+        // but since this effect only runs on user/isAuthReady change, it's mostly for initial load/login
+        navigate('chat');
       }
     } else {
-      // If not logged in and on root or landing on 'dev', go to dev and open auth modal
-      if (path === '' || path === 'dev') {
-        navigate('dev');
+      // If not logged in and on root or landing on 'chat', go to donate
+      if (path === '' || path === 'chat') {
+        navigate('donate');
         // Automatically open auth modal for guests
         setIsAuthModalOpen(true);
       }
@@ -227,13 +229,12 @@ const App: React.FC = () => {
   }, [user, isAuthReady]);
 
   useEffect(() => {
-    if (!user || !isAuthReady) return;
+    if (!user || !isAuthReady || isQuotaExceeded) return;
 
     const q = query(collection(db, 'uploads'), orderBy('createdAt', 'desc'), limit(50));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setUploads(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => {
-      console.error("Error listening to uploads:", error);
       handleFirestoreError(error, OperationType.GET, 'uploads');
     });
     return () => unsubscribe();
@@ -244,8 +245,8 @@ const App: React.FC = () => {
       const customEvent = e as CustomEvent;
       const errInfo = customEvent.detail;
       if (errInfo && errInfo.error && (errInfo.error.includes('Quota limit exceeded') || errInfo.error.includes('Quota exceeded'))) {
-        console.error("Firebase Quota Exceeded. The free daily read/write limit for this database has been reached. The quota will reset tomorrow.");
-        setQuotaError("Firebase Quota Exceeded. The free daily read/write limit for this database has been reached. The quota will reset tomorrow.");
+        console.warn("Firebase Quota Exceeded. The free daily read/write limit for this database has been reached.");
+        setIsQuotaExceededUI(true);
       }
     };
 
@@ -265,13 +266,12 @@ const App: React.FC = () => {
       console.log("Auth state changed:", currentUser?.email);
       setUser(currentUser);
       const superAdminUid = 'HfjrcUIslZPCvNI3fxiQJVK1ebB3';
-      const userEmail = currentUser?.email?.toLowerCase() || '';
-      const isSuperAdminUser = currentUser?.uid === superAdminUid || 
-                               userEmail === 'lily.smith7406@gmail.com' || 
-                               userEmail.includes('rj.po');
-      console.log("Super Admin Check:", { uid: currentUser?.uid, email: currentUser?.email, isSuperAdmin: isSuperAdminUser });
+      const defaultAdminEmail = 'darkfn1234567890@gmail.com';
+      const isSuperAdminUser = currentUser?.uid === superAdminUid;
+      const isDefaultAdmin = currentUser?.email === defaultAdminEmail && currentUser?.emailVerified;
+      
       setIsSuperAdmin(isSuperAdminUser);
-      setIsAdmin(isSuperAdminUser); // Set admin status immediately
+      if (isSuperAdminUser || isDefaultAdmin) setIsAdmin(true);
       // Admin status will be updated by the database listener
       setIsAuthReady(true);
       if (currentUser) {
@@ -279,14 +279,14 @@ const App: React.FC = () => {
       } else {
         setFavorites([]);
         setIsBanned(false);
-        localStorage.removeItem('rjpgames_favorites');
+        localStorage.removeItem('chillzone_favorites');
       }
     });
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user || !isAuthReady) return;
+    if (!user || !isAuthReady || isQuotaExceeded) return;
 
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
@@ -294,11 +294,11 @@ const App: React.FC = () => {
         const data = docSnap.data();
         if (data.customLogo) {
           setCustomLogo(data.customLogo);
-          localStorage.setItem('rjpgames_custom_logo', data.customLogo);
+          localStorage.setItem('chillzone_custom_logo', data.customLogo);
         }
         if (data.favorites) {
           setFavorites(data.favorites);
-          localStorage.setItem('rjpgames_favorites', JSON.stringify(data.favorites));
+          localStorage.setItem('chillzone_favorites', JSON.stringify(data.favorites));
         }
         if (data.theme) {
           localStorage.setItem('custom_theme_id', data.theme);
@@ -331,23 +331,13 @@ const App: React.FC = () => {
         
         // Update admin status based on role in database and super admin UID
         const superAdminUid = 'HfjrcUIslZPCvNI3fxiQJVK1ebB3';
-        const userEmail = user.email?.toLowerCase() || '';
-        const isSuperAdminUser = user.uid === superAdminUid || 
-                                 userEmail === 'lily.smith7406@gmail.com' || 
-                                 userEmail.includes('rj.po');
+        const defaultAdminEmail = 'darkfn1234567890@gmail.com';
+        const isSuperAdminUser = user.uid === superAdminUid;
+        const isDefaultAdmin = user.email === defaultAdminEmail && user.emailVerified;
         const isAdminRole = ['admin', 'co-owner', 'owner'].includes(data.role || '');
         
-        console.log("User Document Check:", { 
-          uid: user.uid, 
-          email: user.email, 
-          role: data.role, 
-          isSuperAdmin: isSuperAdminUser, 
-          isAdminRole: isAdminRole,
-          finalIsAdmin: isSuperAdminUser || isAdminRole
-        });
-        
         setIsSuperAdmin(isSuperAdminUser);
-        setIsAdmin(isSuperAdminUser || isAdminRole);
+        setIsAdmin(isSuperAdminUser || isDefaultAdmin || isAdminRole);
         setIsBanned(data.banned === true && !isSuperAdminUser);
       }
     }, (err) => {
@@ -357,11 +347,11 @@ const App: React.FC = () => {
   }, [user, isAuthReady]);
 
   useEffect(() => {
-    const savedLogo = localStorage.getItem('rjpgames_custom_logo');
+    const savedLogo = localStorage.getItem('chillzone_custom_logo');
     if (savedLogo) setCustomLogo(savedLogo);
     
     // Load custom theme
-    const currentThemeId = localStorage.getItem('custom_theme_id') || 'rjpgames';
+    const currentThemeId = localStorage.getItem('custom_theme_id') || 'chillzone';
     const savedThemes = localStorage.getItem('custom_themes');
     const customThemes = savedThemes ? JSON.parse(savedThemes) : { ...defaultThemes };
     
@@ -372,7 +362,7 @@ const App: React.FC = () => {
       }
     });
 
-    const activeTheme = customThemes[currentThemeId] || defaultThemes.rjpgames;
+    const activeTheme = customThemes[currentThemeId] || defaultThemes.chillzone;
     
     const root = document.documentElement;
     root.style.setProperty('--bg', activeTheme.colors.bg);
@@ -429,12 +419,12 @@ const App: React.FC = () => {
     const handlePopState = () => {
       const path = window.location.pathname.substring(1).toLowerCase();
       const normalizedPath = path.replace('-', ' ') as Category;
-      const validCategories: Category[] = ['home', 'movies', 'tv shows', 'anime', 'manga', 'proxies', 'partners', 'dev', 'support', 'apps', 'browser', 'settings', 'music', 'games', 'chat', 'admin-chat'];
+      const validCategories: Category[] = ['home', 'movies', 'tv shows', 'anime', 'manga', 'proxies', 'partners', 'dev', 'support', 'donate', 'apps', 'browser', 'settings', 'music', 'games', 'chat', 'admin-chat'];
       
       if (validCategories.includes(normalizedPath)) {
         setActiveCategory(normalizedPath);
       } else {
-        setActiveCategory('dev');
+        setActiveCategory('donate');
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -443,10 +433,10 @@ const App: React.FC = () => {
 
   const handleUpdateLogo = (newLogoUrl: string) => {
     setCustomLogo(newLogoUrl);
-    localStorage.setItem('rjpgames_custom_logo', newLogoUrl);
+    localStorage.setItem('chillzone_custom_logo', newLogoUrl);
     
     // Sync to Firebase if logged in
-    if (user) {
+    if (user && !isQuotaExceeded) {
       updateDoc(doc(db, 'users', user.uid), {
         customLogo: newLogoUrl
       }).catch(err => {
@@ -475,10 +465,10 @@ const App: React.FC = () => {
         newFavorites = [...prev, item];
       }
       
-      localStorage.setItem('rjpgames_favorites', JSON.stringify(newFavorites));
+      localStorage.setItem('chillzone_favorites', JSON.stringify(newFavorites));
       
       // Sync to Firebase if logged in
-      if (user) {
+      if (user && !isQuotaExceeded) {
         updateDoc(doc(db, 'users', user.uid), {
           favorites: newFavorites
         }).catch(err => {
@@ -489,6 +479,8 @@ const App: React.FC = () => {
       return newFavorites;
     });
   };
+
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const [searchCategory, setSearchCategory] = useState<'all' | 'movies' | 'tv' | 'anime' | 'manga'>('all');
 
@@ -569,6 +561,21 @@ const App: React.FC = () => {
       <ScrambleEffect />
       <SiteAnnouncements />
       <div id="app" className="fixed inset-0 flex flex-col overflow-hidden bg-bg text-text-primary">
+        {/* Donation Banner */}
+        <div className="bg-black text-white py-2 px-4 text-sm font-bold z-[60] relative flex items-center shadow-lg border-b border-white/10 overflow-hidden">
+          <div className="flex-1 overflow-hidden relative h-6 flex items-center">
+            <div className="animate-marquee absolute w-full text-left">
+              Don't Forget You Can Pay For Custom Movies, Animes, Tv Shows, OR WTV U Want!
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('donate')} 
+            className="bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-1 rounded-full text-xs uppercase tracking-wider transition-colors shrink-0 ml-4 z-10 relative"
+          >
+            Donate
+          </button>
+        </div>
+
         {/* Background glows */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
           <div className="absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full opacity-60" style={{ background: 'var(--accent-glow-dim)', filter: 'blur(160px)', transform: 'translateZ(0)' }}></div>
@@ -576,8 +583,13 @@ const App: React.FC = () => {
         </div>
 
         <div className="relative z-20 flex items-center justify-between p-4 bg-bg/80 backdrop-blur-md border-b border-white/5">
-            <div></div>
-            <div className="text-xs text-text-secondary">© 2026 RJ.P Games</div>
+            <button 
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                className="p-2 rounded-xl bg-surface-hover border border-white/5 text-text-secondary hover:text-white"
+            >
+                {isSidebarVisible ? <X size={20} /> : <LayoutGrid size={20} />}
+            </button>
+            <div className="text-xs text-text-secondary">© 2026 ChillZone</div>
         </div>
 
         {!isAuthModalOpen && !isAdminOpen && (
@@ -586,8 +598,8 @@ const App: React.FC = () => {
             logoUrl={customLogo} 
             onLogoChange={handleUpdateLogo}
             isAdmin={isAdmin}
-            isChatCategory={false}
-            isSidebarVisible={true}
+            isChatCategory={activeCategory === 'chat' || activeCategory === 'admin-chat'}
+            isSidebarVisible={isSidebarVisible}
             onSelect={navigate}
             />
         )}
@@ -602,11 +614,26 @@ const App: React.FC = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsAdminOpen(true)}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-all duration-300"
+                  onClick={() => {
+                    if (isQuotaExceededUI && !hasShownQuotaPopup) {
+                      setShowQuotaPopup(true);
+                    } else {
+                      setIsAdminOpen(true);
+                    }
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-all duration-300 relative"
                   title="Admin Dashboard"
                 >
                   <ShieldCheck size={18} />
+                  {isQuotaExceededUI && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-bg text-[10px] font-black text-white shadow-lg"
+                    >
+                      !
+                    </motion.div>
+                  )}
                 </motion.button>
               )}
 
@@ -708,7 +735,7 @@ const App: React.FC = () => {
               <motion.a 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                href="https://discord.gg/XAsZ5UVGV4" 
+                href="http://discord.gg/cuHARsXESW" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-hover border border-white/5 text-text-secondary hover:text-[#5865F2] hover:border-[#5865F2]/50 transition-all duration-300 relative"
@@ -721,20 +748,7 @@ const App: React.FC = () => {
 
           <div id="content-area" className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-10 custom-scrollbar overscroll-contain">
             <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-              {isPageLoading ? (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center py-40 text-center"
-                >
-                  <Loader2 size={64} className="mb-6 text-accent animate-spin" />
-                  <h2 className="text-3xl font-black uppercase italic tracking-widest italic mb-2 text-white animate-pulse">Loading Content...</h2>
-                  <p className="text-text-secondary font-medium uppercase tracking-[0.2em] text-[10px]">Please wait while we fetch the latest data</p>
-                </motion.div>
-              ) : (
-                <>
-                  {/* Hero Section */}
+              {/* Hero Section */}
                   {activeCategory !== 'music' && (
                     <motion.section 
                       initial={{ opacity: 0, y: -20 }}
@@ -804,7 +818,7 @@ const App: React.FC = () => {
                             {t('Devs')}
                           </h1>
                           <p className="text-text-muted text-lg font-medium max-w-2xl mx-auto">
-                            {t('The team behind RJ.P Games.')} <span className="text-accent font-bold">{t('Click on our cards')}</span> {t('to visit our personal sites and socials!')}
+                            {t('The team behind ChillZone.')} <span className="text-accent font-bold">{t('Click on our cards')}</span> {t('to visit our personal sites and socials!')}
                           </p>
                         </div>
                         <section>
@@ -858,6 +872,79 @@ const App: React.FC = () => {
                       </motion.div>
                     )}
 
+                    {activeCategory === 'donate' && (
+                      <div className="py-12">
+                        <section className="bg-bg rounded-[48px] p-12 md:p-20 border border-surface-hover text-center relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=2000')] bg-cover bg-center opacity-10 blur-sm"></div>
+                          <div className="relative z-10">
+                            <motion.div 
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                              className="w-24 h-24 bg-bg rounded-full flex items-center justify-center mx-auto mb-8 border border-accent/30 shadow-[0_0_40px_var(--accent-glow)]"
+                            >
+                              <Activity size={48} className="text-accent" />
+                            </motion.div>
+                            <motion.h1 
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.1 }}
+                              className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white mb-8"
+                            >
+                              {t('Donate')}
+                            </motion.h1>
+                            <motion.p 
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.2 }}
+                              className="text-text-muted text-xl max-w-2xl mx-auto mb-12 font-medium"
+                            >
+                              {t('Click Which Ever Donation App U Want To Donate On')}
+                            </motion.p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                              <motion.a 
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                href="https://cash.app/$7yari" target="_blank" rel="noopener noreferrer" className="bg-bg border border-surface-hover p-8 rounded-3xl hover:border-[#00d632] transition-all duration-300 group flex flex-col items-center text-center"
+                              >
+                                <img src="https://cdn.simpleicons.org/cashapp/white" alt="Cash App" className="h-12 w-12 mb-4 object-contain" referrerPolicy="no-referrer" />
+                                <div className="text-3xl font-black text-white mb-2"><TranslatedText text="CASH APP" /></div>
+                                <p className="text-text-secondary text-xs font-bold uppercase tracking-widest group-hover:text-[#00d632]">{t('Instant Transfer')}</p>
+                              </motion.a>
+                              <motion.a 
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                                href="https://www.venmo.com/u/ohsols" target="_blank" rel="noopener noreferrer" className="bg-[#008CFF] border border-[#008CFF] p-8 rounded-3xl hover:bg-[#008CFF]/90 transition-all duration-300 shadow-[0_0_30px_rgba(0,140,255,0.4)] flex flex-col items-center text-center"
+                              >
+                                <img src="https://cdn.simpleicons.org/venmo/white" alt="Venmo" className="h-12 w-12 mb-4 object-contain" referrerPolicy="no-referrer" />
+                                <div className="text-3xl font-black text-white mb-2"><TranslatedText text="VENMO" /></div>
+                                <p className="text-white/80 text-xs font-bold uppercase tracking-widest">{t('Mobile Payment')}</p>
+                              </motion.a>
+                              <motion.a 
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                href="https://paypal.me/ohsols" target="_blank" rel="noopener noreferrer" className="bg-bg border border-surface-hover p-8 rounded-3xl hover:border-[#0070ba] transition-all duration-300 group flex flex-col items-center text-center"
+                              >
+                                <img src="https://cdn.simpleicons.org/paypal/white" alt="PayPal" className="h-12 w-12 mb-4 object-contain" referrerPolicy="no-referrer" />
+                                <div className="text-3xl font-black text-white mb-2"><TranslatedText text="PAYPAL" /></div>
+                                <p className="text-text-secondary text-xs font-bold uppercase tracking-widest group-hover:text-[#0070ba]">{t('Direct Transfer')}</p>
+                              </motion.a>
+                            </div>
+                          </div>
+                        </section>
+                      </div>
+                    )}
+
                     {activeCategory === 'games' && (
                       <GamesHub />
                     )}
@@ -869,12 +956,19 @@ const App: React.FC = () => {
                           className="text-center mb-16"
                         >
                           <h1 className="text-7xl font-black italic uppercase tracking-tighter text-white mb-4">Community Chat</h1>
-                          <p className="text-text-secondary max-w-2xl mx-auto font-medium">Connect with other members of RJ.P Games. Share your thoughts, request content, and hang out with the community.</p>
+                          <p className="text-text-secondary max-w-2xl mx-auto font-medium">Connect with other members of ChillZone. Share your thoughts, request content, and hang out with the community.</p>
                         </motion.div>
                         
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 relative z-10">
                           <div className="lg:col-span-3">
-                            {user ? <ChatRoom isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} /> : <div className="text-center py-20 text-text-muted">Please sign up to access the chat room.</div>}
+                            <div className="bg-surface border border-white/5 rounded-3xl p-20 text-center shadow-2xl relative overflow-hidden">
+                              <div className="absolute inset-0 bg-accent/5 pointer-events-none"></div>
+                              <MessageSquare size={64} className="mx-auto text-accent/40 mb-6" />
+                              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white mb-4">Chat Temporarily Disabled</h2>
+                              <p className="text-text-secondary max-w-md mx-auto font-medium">
+                                We've temporarily disabled the community chat to manage our database quota. We'll be back online soon!
+                              </p>
+                            </div>
                           </div>
                           <div className="space-y-6">
                             <div className="bg-surface border border-white/5 rounded-2xl p-6 shadow-xl">
@@ -905,6 +999,17 @@ const App: React.FC = () => {
                                 </li>
                               </ul>
                             </div>
+                            
+                            <div className="bg-accent/10 border border-accent/20 rounded-2xl p-6 shadow-xl">
+                              <h3 className="text-xl font-black italic uppercase tracking-tighter text-accent mb-2">Support Us</h3>
+                              <p className="text-xs text-text-secondary mb-4">Help keep ChillZone alive by donating. Donators get a special badge in chat!</p>
+                              <button 
+                                onClick={() => navigate('donate')}
+                                className="w-full py-3 bg-accent text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-accent/90 transition-colors"
+                              >
+                                Donate Now
+                              </button>
+                            </div>
                           </div>
                         </div>
 
@@ -920,12 +1025,19 @@ const App: React.FC = () => {
                           className="text-center mb-16"
                         >
                           <h1 className="text-7xl font-black italic uppercase tracking-tighter text-white mb-4">Staff Lounge</h1>
-                          <p className="text-text-secondary max-w-2xl mx-auto font-medium">Private discussion area for RJ.P Games staff members. Coordinate updates and manage the site.</p>
+                          <p className="text-text-secondary max-w-2xl mx-auto font-medium">Private discussion area for ChillZone staff members. Coordinate updates and manage the site.</p>
                         </motion.div>
                         
                         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 relative z-10">
                           <div className="lg:col-span-3">
-                            {isAdmin ? <ChatRoom collectionName="admin_chat" isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} /> : <div className="text-center py-20 text-text-muted">Authorized personnel only.</div>}
+                            <div className="bg-surface border border-white/5 rounded-3xl p-20 text-center shadow-2xl relative overflow-hidden">
+                              <div className="absolute inset-0 bg-accent/5 pointer-events-none"></div>
+                              <ShieldCheck size={64} className="mx-auto text-accent/40 mb-6" />
+                              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white mb-4">Staff Lounge Offline</h2>
+                              <p className="text-text-secondary max-w-md mx-auto font-medium">
+                                The staff lounge is currently offline for maintenance. Please use our secondary communication channels.
+                              </p>
+                            </div>
                           </div>
                           <div className="space-y-6">
                             <div className="bg-surface border border-white/5 rounded-2xl p-6 shadow-xl">
@@ -1017,8 +1129,6 @@ const App: React.FC = () => {
                   </motion.div>
                 </AnimatePresence>
               )}
-                </>
-              )}
             </div>
           </div>
         </main>
@@ -1042,7 +1152,7 @@ const App: React.FC = () => {
             >
               <ShieldAlert size={48} className="mx-auto text-accent mb-6" />
               <h3 className="text-2xl font-black italic uppercase text-white mb-4">{t('External Link Warning')}</h3>
-              <p className="text-text-muted mb-8 font-medium">{t('You are about to leave RJ.P Games to view')} <span className="text-white font-bold"><TranslatedText text={selectedStaff.name} />'s</span> {t('socials. Proceed with caution.')}</p>
+              <p className="text-text-muted mb-8 font-medium">{t('You are about to leave Chillzone to view')} <span className="text-white font-bold"><TranslatedText text={selectedStaff.name} />'s</span> {t('socials. Proceed with caution.')}</p>
               <div className="flex gap-4">
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setSelectedStaff(null)} className="flex-1 py-4 rounded-xl bg-surface-active text-white font-bold uppercase tracking-widest text-xs hover:bg-surface-hover transition-colors">{t('Abort')}</motion.button>
                 <motion.a whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} href={selectedStaff.link} target="_blank" onClick={() => setSelectedStaff(null)} className="flex-1 py-4 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-xs hover:bg-accent/80 transition-colors flex items-center justify-center gap-2">{t('Proceed')} <ExternalLink size={14} /></motion.a>
@@ -1206,13 +1316,7 @@ const App: React.FC = () => {
 
 
       <AnimatePresence>
-        {isSuggestionModalOpen && (
-          <SuggestionModal onClose={() => setIsSuggestionModalOpen(false)} />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {quotaError && (
+        {showQuotaPopup && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1230,16 +1334,20 @@ const App: React.FC = () => {
               </div>
               <h2 className="text-2xl font-black italic uppercase tracking-widest text-white mb-4">Quota Exceeded</h2>
               <p className="text-neutral-400 mb-8 font-medium">
-                {quotaError}
+                The free daily read/write limit for this database has been reached. The quota will reset tomorrow.
               </p>
               <p className="text-sm text-neutral-500 mb-8">
                 Detailed quota information can be found under the Spark plan column in the Enterprise edition section of <a href="https://firebase.google.com/pricing#cloud-firestore" target="_blank" rel="noreferrer" className="text-accent hover:underline">Firebase Pricing</a>.
               </p>
               <button 
-                onClick={() => setQuotaError(null)}
+                onClick={() => {
+                  setHasShownQuotaPopup(true);
+                  setShowQuotaPopup(false);
+                  setIsAdminOpen(true);
+                }}
                 className="w-full py-4 bg-white text-black rounded-xl font-black uppercase tracking-widest hover:scale-[1.02] transition-all"
               >
-                Dismiss
+                Dismiss & Open Panel
               </button>
             </motion.div>
           </motion.div>

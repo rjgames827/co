@@ -47,7 +47,7 @@ export const getQueryAestheticDescription = async (query: string) => {
       Example: "Uncovering the secrets of the digital frontier."
       Make it mysterious and atmospheric.`,
       config: {
-        systemInstruction: "You are the AI Librarian of RJ.P Games. Your voice is dark, futuristic, and slightly mysterious.",
+        systemInstruction: "You are the AI Librarian of ChillZone. Your voice is dark, futuristic, and slightly mysterious.",
         temperature: 0.7,
         maxOutputTokens: 50,
       }

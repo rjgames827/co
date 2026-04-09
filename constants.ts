@@ -871,17 +871,20 @@ export const PROXIES_DATA: ProxyItem[] = [
 ];
 
 export const PARTNERS_DATA: PartnerItem[] = [
-    {
-        name: "RJ.P Games",
-        owner: "RJ.P",
-        url: "https://rj-p-gamess.vercel.app/",
-        avatar: "https://files.catbox.moe/5mijpj.png"
-    },
+  { 
+    name: "カービィアーケード", 
+    owner: "SAM", 
+    url: "https://sites.google.com/view/fus3-bomb/page", 
+    urls: [
+      { name: "Google Sites", url: "https://sites.google.com/view/fus3-bomb/page" },
+      { name: "GitHub Pages", url: "https://mkplaza.github.io/" }
+    ],
+    banner: "https://preview.redd.it/what-are-your-favorite-meta-knight-battle-themes-and-v0-2rludfrd5hqb1.jpg?width=640&crop=smart&auto=webp&s=9a5cf8aac407cfafbcea666f0baca6293dfa2123",
+    avatar: "https://cdn.jsdelivr.net/gh/MKPlaza/MKPlaza.github.io@main/Meta_Knight_Logo.webp"
+  }
 ];
 
 export const STAFF_DATA: StaffMember[] = [
-    { name: "RJ.P", role: "Owner", img: "https://files.catbox.moe/5mijpj.png", link: "https://guns.lol/zzemie" },
-    { name: "ANDREJ", role: "Co-Owner", img: "https://files.catbox.moe/rgh3mz.png", }
+  { name: "Sols", role: "Owner", img: "https://i.pinimg.com/1200x/90/54/72/9054723fa92af09702e7e72b44f0c232.jpg", link: "https://guns.lol/ohsols" },
+  { name: "xsviiera", role: "Co-Owner", img: "https://i.pinimg.com/736x/de/7d/d1/de7dd1dac309810a55559f1b4bac930a.jpg", link: "https://guns.lol/iviera" }
 ];
-
-
