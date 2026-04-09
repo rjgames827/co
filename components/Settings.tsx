@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { VenetianMask, Palette, ChevronDown, Edit2, X, ExternalLink, Globe, User, Trash2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext';
-import { auth, db, handleFirestoreError, OperationType, isQuotaExceeded } from '../firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, updateDoc, deleteDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { deleteUser, updateProfile } from 'firebase/auth';
 import { RefreshCw, CheckCircle2 } from 'lucide-react';
@@ -23,9 +23,9 @@ export type Theme = {
 };
 
 export const defaultThemes: Record<string, Theme> = {
-  chillzone: {
-    id: 'chillzone',
-    name: 'ChillZone (Default)',
+  rjpgames: {
+    id: 'rjpgames',
+    name: 'RJ.P Games (Default)',
     colors: {
       bg: '#050505',
       textPrimary: '#ffffff',
@@ -356,7 +356,7 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ onClose }) => {
   const [activeSection, setActiveSection] = useState('theme');
-  const [currentThemeId, setCurrentThemeId] = useState(() => localStorage.getItem('custom_theme_id') || 'chillzone');
+  const [currentThemeId, setCurrentThemeId] = useState(() => localStorage.getItem('custom_theme_id') || 'rjpgames');
   const [customThemes, setCustomThemes] = useState(() => {
     const saved = localStorage.getItem('custom_themes');
     const themes = saved ? JSON.parse(saved) : { ...defaultThemes };
@@ -389,14 +389,14 @@ const Settings: React.FC<SettingsProps> = ({ onClose }) => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!auth.currentUser || isQuotaExceeded) return;
+      if (!auth.currentUser) return;
       try {
         const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
         if (userDoc.exists()) {
           setLastUsernameChange(userDoc.data().lastUsernameChange);
         }
       } catch (err) {
-        handleFirestoreError(err, OperationType.GET, `users/${auth.currentUser?.uid}`);
+        console.error("Error fetching user data:", err);
       }
     };
     fetchUserData();
@@ -424,12 +424,6 @@ const Settings: React.FC<SettingsProps> = ({ onClose }) => {
     setUsernameError(null);
     setUsernameSuccess(false);
 
-    if (isQuotaExceeded) {
-      setUsernameError("Database quota exceeded. Please try again later.");
-      setIsUpdatingUsername(false);
-      return;
-    }
-
     try {
       // 1. Update Auth Profile
       await updateProfile(auth.currentUser, { displayName: newDisplayName });
@@ -445,9 +439,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose }) => {
       setUsernameSuccess(true);
       setTimeout(() => setUsernameSuccess(false), 3000);
     } catch (err: any) {
-      if (!String(err).includes('Quota limit exceeded') && !String(err).includes('Quota exceeded')) {
-        console.error("Error updating username:", err);
-      }
+      console.error("Error updating username:", err);
       setUsernameError("Failed to update username. Please try again.");
       handleFirestoreError(err, OperationType.UPDATE, `users/${auth.currentUser?.uid}`);
     } finally {
@@ -461,12 +453,6 @@ const Settings: React.FC<SettingsProps> = ({ onClose }) => {
 
     setIsDeleting(true);
     setDeleteError(null);
-
-    if (isQuotaExceeded) {
-      setDeleteError("Database quota exceeded. Please try again later.");
-      setIsDeleting(false);
-      return;
-    }
 
     try {
       const user = auth.currentUser;
@@ -482,9 +468,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose }) => {
       onClose();
       window.location.href = '/';
     } catch (err: any) {
-      if (!String(err).includes('Quota limit exceeded') && !String(err).includes('Quota exceeded')) {
-        console.error("Error deleting account:", err);
-      }
+      console.error("Error deleting account:", err);
       if (err.code === 'auth/requires-recent-login') {
         setDeleteError("This action requires a recent login. Please log out and log back in, then try again.");
       } else {
@@ -496,7 +480,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose }) => {
     }
   };
 
-  const activeTheme = customThemes[currentThemeId] || defaultThemes.chillzone;
+  const activeTheme = customThemes[currentThemeId] || defaultThemes.rjpgames;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -522,7 +506,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose }) => {
     localStorage.setItem('custom_themes', JSON.stringify(customThemes));
     
     // Sync to Firebase if logged in
-    if (auth.currentUser && !isQuotaExceeded) {
+    if (auth.currentUser) {
       updateDoc(doc(db, 'users', auth.currentUser.uid), {
         theme: currentThemeId,
         customThemes: JSON.stringify(customThemes)
@@ -556,7 +540,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose }) => {
   };
 
   const handleReset = () => {
-    setCurrentThemeId('chillzone');
+    setCurrentThemeId('rjpgames');
     setCustomThemes(defaultThemes);
   };
 

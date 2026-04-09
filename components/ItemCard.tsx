@@ -32,7 +32,7 @@ const ItemCard: React.FC<ItemCardProps> = React.memo(({ item, category, onOpenDe
       
       // Fast check for cache before calling translateDynamic
       const cacheKey = `${language}:${item.t}`;
-      const savedCache = JSON.parse(localStorage.getItem('chillzone_translation_cache') || '{}');
+      const savedCache = JSON.parse(localStorage.getItem('rjpgames_translation_cache') || '{}');
       if (savedCache[cacheKey]) {
         if (isMounted) setTranslatedTitle(savedCache[cacheKey]);
         return;

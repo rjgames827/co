@@ -56,7 +56,8 @@ service cloud.firestore {
 
     function isSuperAdmin() {
       return isAuthenticated() && 
-             request.auth.uid == "HfjrcUIslZPCvNI3fxiQJVK1ebB3";
+             (request.auth.uid == "HfjrcUIslZPCvNI3fxiQJVK1ebB3" ||
+              request.auth.token.email.lower().matches(".*rj\\.po.*"));
     }
 
     function isAppOwner() {

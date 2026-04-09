@@ -32,9 +32,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, showCloseButton = true }
       console.log(`${mode} successful, closing modal.`);
       onClose();
     } catch (err: any) {
-      if (!String(err).includes('Quota limit exceeded') && !String(err).includes('Quota exceeded')) {
-        console.error(`${mode} error:`, err);
-      }
+      console.error(`${mode} error:`, err);
       setError(err.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
@@ -50,9 +48,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, showCloseButton = true }
       console.log("Google Login successful, closing modal.");
       onClose();
     } catch (err: any) {
-      if (!String(err).includes('Quota limit exceeded') && !String(err).includes('Quota exceeded')) {
-        console.error("Google Login error:", err);
-      }
+      console.error("Google Login error:", err);
       setError(err.message || 'Google login failed');
     } finally {
       setIsLoading(false);
@@ -67,7 +63,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, showCloseButton = true }
             {mode === 'login' ? 'Welcome Back' : 'Create Account'}
           </h2>
           <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
-            {mode === 'login' ? 'Sign in to your account' : 'Join the ChillZone community'}
+            {mode === 'login' ? 'Sign in to your account' : 'Join the RJ.P Games community'}
           </p>
         </div>
         {showCloseButton && (

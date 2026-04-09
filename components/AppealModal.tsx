@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { db, auth, handleFirestoreError, OperationType, isQuotaExceeded } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { X, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -24,12 +24,6 @@ const AppealModal: React.FC<AppealModalProps> = ({ isOpen, onClose, userEmail, u
     setIsSubmitting(true);
     setError(null);
 
-    if (isQuotaExceeded) {
-      setError("Database quota exceeded. Please try again later.");
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
       const currentUserId = userId || auth.currentUser?.uid;
       const currentUserEmail = userEmail || auth.currentUser?.email;
@@ -52,9 +46,7 @@ const AppealModal: React.FC<AppealModalProps> = ({ isOpen, onClose, userEmail, u
         setReason('');
       }, 3000);
     } catch (err) {
-      if (!String(err).includes('Quota limit exceeded') && !String(err).includes('Quota exceeded')) {
-        console.error("Error submitting appeal:", err);
-      }
+      console.error("Error submitting appeal:", err);
       setError("Failed to submit appeal. Please try again later.");
       handleFirestoreError(err, OperationType.CREATE, 'appeals');
     } finally {

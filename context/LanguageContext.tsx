@@ -69,7 +69,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'DECRYPTING WIKI...': 'DECRYPTING WIKI...',
     'FETCH WIKI INTELLIGENCE': 'FETCH WIKI INTELLIGENCE',
     'Direct Feed Offline • Initiating Search Protocol': 'Direct Feed Offline • Initiating Search Protocol',
-    'The team behind ChillZone.': 'The team behind ChillZone.',
+    'The team behind ChillZone.': 'The team behind RJ.P Games.',
     'Click on our cards': 'Click on our cards',
     'to visit our personal sites and socials!': 'to visit our personal sites and socials!',
     'Click Which Ever Donation App U Want To Donate On': 'Click Which Ever Donation App U Want To Donate On',
@@ -77,7 +77,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'Mobile Payment': 'Mobile Payment',
     'Direct Transfer': 'Direct Transfer',
     'SOURCE': 'SOURCE',
-    'You are about to leave Chillzone to view': 'You are about to leave Chillzone to view',
+    'You are about to leave Chillzone to view': 'You are about to leave RJ.P Games to view',
     'socials. Proceed with caution.': 'socials. Proceed with caution.',
     'Account': 'Account',
     'Manage your account settings.': 'Manage your account settings.',
@@ -158,7 +158,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'DECRYPTING WIKI...': 'DESCRIPTANDO WIKI...',
     'FETCH WIKI INTELLIGENCE': 'OBTENER INTELIGENCIA WIKI',
     'Direct Feed Offline • Initiating Search Protocol': 'Transmisión Directa Fuera de Línea • Iniciando Protocolo de Búsqueda',
-    'The team behind ChillZone.': 'El equipo detrás de ChillZone.',
+    'The team behind ChillZone.': 'El equipo detrás de RJ.P Games.',
     'Click on our cards': 'Haz clic en nuestras tarjetas',
     'to visit our personal sites and socials!': 'para visitar nuestros sitios personales y redes sociales!',
     'Click Which Ever Donation App U Want To Donate On': 'Haz clic en la aplicación de donación que prefieras',
@@ -166,7 +166,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'Mobile Payment': 'Pago Móvil',
     'Direct Transfer': 'Transferencia Directa',
     'SOURCE': 'FUENTE',
-    'You are about to leave Chillzone to view': 'Estás a punto de salir de Chillzone para ver',
+    'You are about to leave Chillzone to view': 'Estás a punto de salir de RJ.P Games para ver',
     'socials. Proceed with caution.': 'redes sociales. Procede con precaución.',
     'Account': 'Cuenta',
     'Manage your account settings.': 'Administra la configuración de tu cuenta.',
@@ -243,7 +243,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'DECRYPTING WIKI...': 'DÉCRYPTAGE DU WIKI...',
     'FETCH WIKI INTELLIGENCE': 'RÉCUPÉRER L\'INTELLIGENCE DU WIKI',
     'Direct Feed Offline • Initiating Search Protocol': 'Flux direct hors ligne • Initiation du protocole de recherche',
-    'The team behind ChillZone.': 'L\'équipe derrière ChillZone.',
+    'The team behind ChillZone.': 'L\'équipe derrière RJ.P Games.',
     'Click on our cards': 'Cliquez sur nos cartes',
     'to visit our personal sites and socials!': 'pour visiter nos sites personnels et réseaux sociaux !',
     'Click Which Ever Donation App U Want To Donate On': 'Cliquez sur l\'application de don de votre choix',
@@ -251,7 +251,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'Mobile Payment': 'Paiement mobile',
     'Direct Transfer': 'Transfert direct',
     'SOURCE': 'SOURCE',
-    'You are about to leave Chillzone to view': 'Vous êtes sur le point de quitter Chillzone pour voir',
+    'You are about to leave Chillzone to view': 'Vous êtes sur le point de quitter RJ.P Games pour voir',
     'socials. Proceed with caution.': 'les réseaux sociaux. Procédez avec prudence.'
   },
   'zh-CN': {
@@ -319,7 +319,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'DECRYPTING WIKI...': '正在解密百科...',
     'FETCH WIKI INTELLIGENCE': '获取百科情报',
     'Direct Feed Offline • Initiating Search Protocol': '直接馈送离线 • 启动搜索协议',
-    'The team behind ChillZone.': 'ChillZone 背后的团队。',
+    'The team behind ChillZone.': 'RJ.P Games 背后的团队。',
     'Click on our cards': '点击我们的卡片',
     'to visit our personal sites and socials!': '访问我们的个人网站和社交媒体！',
     'Click Which Ever Donation App U Want To Donate On': '点击您想要捐赠的任何捐赠应用',
@@ -327,7 +327,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'Mobile Payment': '移动支付',
     'Direct Transfer': '直接转账',
     'SOURCE': '来源',
-    'You are about to leave Chillzone to view': '您即将离开 Chillzone 查看',
+    'You are about to leave Chillzone to view': '您即将离开 RJ.P Games 查看',
     'socials. Proceed with caution.': '的社交媒体。请谨慎操作。'
   },
   'ja-JP': {
@@ -395,7 +395,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'DECRYPTING WIKI...': 'Wikiを解読中...',
     'FETCH WIKI INTELLIGENCE': 'Wikiインテリジェンスを取得',
     'Direct Feed Offline • Initiating Search Protocol': 'ダイレクトフィードオフライン • 検索プロトコルを開始中',
-    'The team behind ChillZone.': 'ChillZoneの背後にあるチーム。',
+    'The team behind ChillZone.': 'RJ.P Gamesの背後にあるチーム。',
     'Click on our cards': 'カードをクリックして',
     'to visit our personal sites and socials！': '私たちの個人サイトやSNSにアクセスしてください！',
     'Click Which Ever Donation App U Want To Donate On': '寄付したいアプリをクリックしてください',
@@ -403,7 +403,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'Mobile Payment': 'モバイル決済',
     'Direct Transfer': '直接送金',
     'SOURCE': 'ソース',
-    'You are about to leave Chillzone to view': 'Chillzoneを離れて',
+    'You are about to leave Chillzone to view': 'RJ.P Gamesを離れて',
     'socials. Proceed with caution.': 'のSNSを表示しようとしています。注意して続行してください。'
   },
   'de-DE': {
@@ -471,7 +471,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'DECRYPTING WIKI...': 'WIKI WIRD ENTSCHLÜSSELT...',
     'FETCH WIKI INTELLIGENCE': 'WIKI-INTELLIGENZ ABRUFEN',
     'Direct Feed Offline • Initiating Search Protocol': 'Direkt-Feed offline • Suchprotokoll wird initiiert',
-    'The team behind ChillZone.': 'Das Team hinter ChillZone.',
+    'The team behind ChillZone.': 'Das Team hinter RJ.P Games.',
     'Click on our cards': 'Klicken Sie auf unsere Karten',
     'to visit our personal sites and socials!': 'um unsere persönlichen Seiten und sozialen Netzwerke zu besuchen!',
     'Click Which Ever Donation App U Want To Donate On': 'Klicken Sie auf die Spenden-App, über die Sie spenden möchten',
@@ -479,7 +479,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'Mobile Payment': 'Mobiles Bezahlen',
     'Direct Transfer': 'Direktüberweisung',
     'SOURCE': 'QUELLE',
-    'You are about to leave Chillzone to view': 'Sie sind im Begriff, Chillzone zu verlassen, um',
+    'You are about to leave Chillzone to view': 'Sie sind im Begriff, RJ.P Games zu verlassen, um',
     'socials. Proceed with caution.': 'soziale Netzwerke anzusehen. Gehen Sie mit Vorsicht vor.'
   },
   'it-IT': {
@@ -547,7 +547,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'DECRYPTING WIKI...': 'DECRIPTAZIONE WIKI...',
     'FETCH WIKI INTELLIGENCE': 'OTTIENI INTELLIGENZA WIKI',
     'Direct Feed Offline • Initiating Search Protocol': 'Feed diretto offline • Avvio protocollo di ricerca',
-    'The team behind ChillZone.': 'Il team dietro ChillZone.',
+    'The team behind ChillZone.': 'Il team dietro RJ.P Games.',
     'Click on our cards': 'Clicca sulle nostre schede',
     'to visit our personal sites and socials!': 'per visitare i nostri siti personali e i social!',
     'Click Which Ever Donation App U Want To Donate On': 'Clicca sull\'app di donazione che preferisci',
@@ -555,7 +555,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'Mobile Payment': 'Pagamento mobile',
     'Direct Transfer': 'Trasferimento diretto',
     'SOURCE': 'FONTE',
-    'You are about to leave Chillzone to view': 'Stai per lasciare Chillzone per visualizzare',
+    'You are about to leave Chillzone to view': 'Stai per lasciare RJ.P Games per visualizzare',
     'socials. Proceed with caution.': 'i social. Procedi con cautela.'
   },
   'pt-BR': {
@@ -623,7 +623,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'DECRYPTING WIKI...': 'DESCRIPTOGRAFANDO WIKI...',
     'FETCH WIKI INTELLIGENCE': 'OBTER INTELIGÊNCIA DA WIKI',
     'Direct Feed Offline • Initiating Search Protocol': 'Feed direto offline • Iniciando protocolo de pesquisa',
-    'The team behind ChillZone.': 'A equipe por trás do ChillZone.',
+    'The team behind ChillZone.': 'A equipe por trás do RJ.P Games.',
     'Click on our cards': 'Clique em nossos cartões',
     'to visit our personal sites and socials!': 'para visitar nossos sites pessoais e redes sociais!',
     'Click Which Ever Donation App U Want To Donate On': 'Clique no aplicativo de doação que você deseja usar',
@@ -631,7 +631,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     'Mobile Payment': 'Pagamento Móvel',
     'Direct Transfer': 'Transferência Direta',
     'SOURCE': 'FONTE',
-    'You are about to leave Chillzone to view': 'Você está prestes a sair do Chillzone para ver',
+    'You are about to leave Chillzone to view': 'Você está prestes a sair do RJ.P Games para ver',
     'socials. Proceed with caution.': 'redes sociais. Prossiga com cautela.'
   }
 };
@@ -650,34 +650,34 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState(localStorage.getItem('chillzone_language') || 'en-US');
-  const [militaryTime, setMilitaryTimeState] = useState(localStorage.getItem('chillzone_military_time') === 'true');
-  const [timeZone, setTimeZoneState] = useState(localStorage.getItem('chillzone_timezone') || 'auto');
+  const [language, setLanguageState] = useState(localStorage.getItem('rjpgames_language') || 'en-US');
+  const [militaryTime, setMilitaryTimeState] = useState(localStorage.getItem('rjpgames_military_time') === 'true');
+  const [timeZone, setTimeZoneState] = useState(localStorage.getItem('rjpgames_timezone') || 'auto');
   const [dynamicCache, setDynamicCache] = useState<Record<string, string>>(() => {
-    const saved = localStorage.getItem('chillzone_translation_cache');
+    const saved = localStorage.getItem('rjpgames_translation_cache');
     return saved ? JSON.parse(saved) : {};
   });
 
   useEffect(() => {
-    localStorage.setItem('chillzone_translation_cache', JSON.stringify(dynamicCache));
+    localStorage.setItem('rjpgames_translation_cache', JSON.stringify(dynamicCache));
   }, [dynamicCache]);
 
   const setLanguage = (lang: string) => {
     setLanguageState(lang);
-    localStorage.setItem('chillzone_language', lang);
-    window.dispatchEvent(new Event('chillzone_settings_changed'));
+    localStorage.setItem('rjpgames_language', lang);
+    window.dispatchEvent(new Event('rjpgames_settings_changed'));
   };
 
   const setMilitaryTime = (val: boolean) => {
     setMilitaryTimeState(val);
-    localStorage.setItem('chillzone_military_time', val.toString());
-    window.dispatchEvent(new Event('chillzone_settings_changed'));
+    localStorage.setItem('rjpgames_military_time', val.toString());
+    window.dispatchEvent(new Event('rjpgames_settings_changed'));
   };
 
   const setTimeZone = (tz: string) => {
     setTimeZoneState(tz);
-    localStorage.setItem('chillzone_timezone', tz);
-    window.dispatchEvent(new Event('chillzone_settings_changed'));
+    localStorage.setItem('rjpgames_timezone', tz);
+    window.dispatchEvent(new Event('rjpgames_settings_changed'));
   };
 
   const t = (key: string) => {
@@ -692,7 +692,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (dynamicCache[cacheKey]) return dynamicCache[cacheKey];
 
     // Check localStorage directly for faster access if state hasn't updated yet
-    const savedCache = JSON.parse(localStorage.getItem('chillzone_translation_cache') || '{}');
+    const savedCache = JSON.parse(localStorage.getItem('rjpgames_translation_cache') || '{}');
     if (savedCache[cacheKey]) return savedCache[cacheKey];
 
     try {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Send, Loader2 } from 'lucide-react';
-import { db, auth, OperationType, handleFirestoreError, isQuotaExceeded } from '../firebase';
+import { db, auth, OperationType, handleFirestoreError } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 interface SuggestionModalProps {
@@ -26,12 +26,6 @@ const SuggestionModal: React.FC<SuggestionModalProps> = ({ onClose }) => {
     setIsSubmitting(true);
     setError('');
 
-    if (isQuotaExceeded) {
-      setError('Database quota exceeded. Please try again later.');
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
       await addDoc(collection(db, 'suggestions'), {
         userId: auth.currentUser.uid,
@@ -45,9 +39,7 @@ const SuggestionModal: React.FC<SuggestionModalProps> = ({ onClose }) => {
         onClose();
       }, 2000);
     } catch (err: any) {
-      if (!String(err).includes('Quota limit exceeded') && !String(err).includes('Quota exceeded')) {
-        console.error('Error submitting suggestion:', err);
-      }
+      console.error('Error submitting suggestion:', err);
       setError('Failed to submit suggestion. Please try again.');
       handleFirestoreError(err, OperationType.CREATE, 'suggestions');
     } finally {

@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Home, Film, Tv, Sparkles, BookOpen, Heart, Camera, Globe, Users, DollarSign, Gamepad2, LayoutGrid, Settings as SettingsIcon, Shield, Code, Music, Database, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Home, Film, Tv, Sparkles, BookOpen, Heart, Camera, Globe, Users, Gamepad2, LayoutGrid, Settings as SettingsIcon, Shield, Code, Music, Database, MessageSquare, ShieldCheck } from 'lucide-react';
 import { Category } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext';
@@ -37,7 +37,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeCategory, logoUrl, onLogoChange
   };
 
   const navItems = [
-    { id: 'donate' as Category, label: 'Donate', icon: DollarSign },
     { id: 'support' as Category, label: 'Devs', icon: Heart },
     { id: 'chat' as Category, label: 'Chat', icon: MessageSquare },
     ...(isAdmin ? [{ id: 'admin-chat' as Category, label: 'Admin Chat', icon: ShieldCheck }] : []),
@@ -59,11 +58,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeCategory, logoUrl, onLogoChange
     <motion.aside 
       initial={false}
       animate={{ 
-        height: isChatCategory ? (isHovered ? 80 : 10) : (isSidebarVisible ? 80 : 0),
-        opacity: isChatCategory ? (isHovered ? 1 : 0.1) : (isSidebarVisible ? 1 : 0)
+        height: 80,
+        opacity: 1
       }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       className="bg-bg border-b border-white/5 flex flex-row items-center px-8 shrink-0 transition-all duration-300 z-[100] w-full relative"
     >
       <div className="mr-12">
@@ -110,18 +107,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeCategory, logoUrl, onLogoChange
                 }`}>
                   <Icon size={22} />
                 </div>
-                <AnimatePresence>
-                  {isHovered && (
-                    <motion.span 
-                      initial={{ opacity: 0, x: -5 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -5 }}
-                      className="text-[10px] font-black uppercase tracking-[0.2em] italic"
-                    >
-                      {t(item.label)}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                <span 
+                  className="text-[10px] font-black uppercase tracking-[0.2em] italic"
+                >
+                  {t(item.label)}
+                </span>
               </button>
             );
           })}

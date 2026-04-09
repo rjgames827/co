@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { db, auth, handleFirestoreError, OperationType, isQuotaExceeded } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, orderBy, getDocs, getDoc, serverTimestamp, doc, deleteDoc, updateDoc, setDoc, limit, where, onSnapshot } from 'firebase/firestore';
 import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { Send, Trash2, Edit2, Check, X, ShieldCheck, Smile, DollarSign, MessageSquare, AlertCircle, Zap, Ban, Loader2 } from 'lucide-react';
@@ -25,7 +25,6 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ collectionName = 'chat', isAdmin = 
   const [replyTo, setReplyTo] = useState<{ id: string, text: string, displayName: string } | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [banConfirm, setBanConfirm] = useState<{ uid: string, displayName: string, email?: string } | null>(null);
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const isAtBottomRef = useRef(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -50,18 +49,13 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ collectionName = 'chat', isAdmin = 
   }, []);
 
   useEffect(() => {
-    if (isQuotaExceeded) {
-      setIsLoading(false);
-      setError("Database quota exceeded. Chat is temporarily unavailable.");
-      return;
-    }
-
     const q = query(collection(db, collectionName), orderBy('createdAt', 'desc'), limit(100));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse();
       setMessages(newMessages);
       setIsLoading(false);
     }, (err) => {
+      console.error("ChatRoom fetch error:", err);
       setError("Failed to load messages. Please check your permissions.");
       setIsLoading(false);
       handleFirestoreError(err, OperationType.LIST, collectionName);
@@ -75,27 +69,9 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ collectionName = 'chat', isAdmin = 
     }
   }, [messages]);
 
-  useEffect(() => {
-    if (cooldownRemaining > 0) {
-      const timer = setTimeout(() => setCooldownRemaining(prev => prev - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [cooldownRemaining]);
-
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !auth.currentUser) return;
-
-    if (isQuotaExceeded) {
-      setError("Database quota exceeded. Cannot send messages.");
-      return;
-    }
-
-    if (!isAdmin && !isSuperAdmin && cooldownRemaining > 0) {
-      setError(`Please wait ${cooldownRemaining}s before sending another message.`);
-      setTimeout(() => setError(null), 2000);
-      return;
-    }
 
     // Check for /clear command
     if (newMessage.trim() === '/clear' && auth.currentUser.uid === 'HfjrcUIslZPCvNI3fxiQJVK1ebB3') {
@@ -132,11 +108,6 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ collectionName = 'chat', isAdmin = 
         role: isSuperAdmin ? 'super-admin' : (isAdmin ? 'admin' : 'user'),
         replyTo: replyTo ? { id: replyTo.id, text: replyTo.text, displayName: replyTo.displayName } : null,
       });
-      
-      if (!isAdmin && !isSuperAdmin) {
-        setCooldownRemaining(3);
-      }
-
       setNewMessage('');
       setReplyTo(null);
       isAtBottomRef.current = true;
@@ -151,7 +122,6 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ collectionName = 'chat', isAdmin = 
   };
 
   const deleteMessage = async (id: string) => {
-    if (isQuotaExceeded) return;
     try {
       await deleteDoc(doc(db, collectionName, id));
     } catch (err) {
@@ -165,7 +135,6 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ collectionName = 'chat', isAdmin = 
   };
 
   const saveEdit = async (id: string) => {
-    if (isQuotaExceeded) return;
     const containsBanned = BANNED_KEYWORDS.some(word => 
       editValue.toLowerCase().includes(word.toLowerCase())
     );
@@ -189,7 +158,6 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ collectionName = 'chat', isAdmin = 
 
   const handleBanUser = async () => {
     if (!banConfirm || !isSuperAdmin) return;
-    if (isQuotaExceeded) return;
     
     try {
       await setDoc(doc(db, 'users', banConfirm.uid), { banned: true }, { merge: true });
@@ -383,16 +351,8 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ collectionName = 'chat', isAdmin = 
             )}
           </AnimatePresence>
         </div>
-        <button 
-          type="submit" 
-          disabled={!isAdmin && !isSuperAdmin && cooldownRemaining > 0}
-          className="p-2 bg-accent rounded-xl text-white hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[40px]"
-        >
-          {cooldownRemaining > 0 && !isAdmin && !isSuperAdmin ? (
-            <span className="text-[10px] font-black">{cooldownRemaining}s</span>
-          ) : (
-            <Send size={18} />
-          )}
+        <button type="submit" className="p-2 bg-accent rounded-xl text-white hover:bg-accent/90 transition-colors">
+          <Send size={18} />
         </button>
       </form>
 
