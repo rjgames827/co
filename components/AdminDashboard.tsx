@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2, Edit2, Save, AlertCircle, CheckCircle2, ShieldCheck, Users, Megaphone, Activity, Send, Check, Ban, UserCheck, Upload, Loader2, Link, Copy, RefreshCw } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, Save, AlertCircle, CheckCircle2, ShieldCheck, Users, Megaphone, Activity, Send, Check, Ban, UserCheck, Upload, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { db, auth, OperationType, handleFirestoreError, isQuotaExceeded } from '../firebase';
 import { collection, addDoc, query, orderBy, deleteDoc, doc, updateDoc, serverTimestamp, Timestamp, setDoc, where, getDocs, limit, onSnapshot } from 'firebase/firestore';
@@ -46,15 +46,6 @@ interface AllowedAdmin {
   email: string;
   addedBy: string;
   createdAt: Timestamp;
-}
-
-interface WebsiteLink {
-  id: string;
-  subdomain: string;
-  domain: string;
-  fullUrl: string;
-  createdAt: Timestamp;
-  createdBy: string;
 }
 
 interface AdminDashboardProps {
@@ -108,20 +99,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'announcements' | 'suggestions' | 'users' | 'admins' | 'analytics' | 'appeals' | 'banned' | 'upload' | 'links'>('links');
+  const [activeTab, setActiveTab] = useState<'announcements' | 'suggestions' | 'users' | 'admins' | 'analytics' | 'appeals' | 'banned' | 'upload'>('announcements');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestionFilter, setSuggestionFilter] = useState<'all' | 'pending' | 'reviewed'>('all');
   const [appealFilter, setAppealFilter] = useState<'all' | 'pending' | 'approved' | 'denied'>('all');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'co-owner' | 'owner' | 'user' | 'donator' | 'tester'>('all');
-  const [websiteLinks, setWebsiteLinks] = useState<WebsiteLink[]>(() => {
-    const saved = localStorage.getItem('chillzone_website_links');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [generatingLink, setGeneratingLink] = useState(false);
 
   useEffect(() => {
-    if (activeTab === 'analytics' || activeTab === 'upload' || activeTab === 'links' || isQuotaExceeded) return;
+    if (activeTab === 'analytics' || activeTab === 'upload' || isQuotaExceeded) return;
 
     setIsLoading(true);
     let unsubscribe: () => void = () => {};
@@ -435,322 +421,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
     }
   };
 
-  const generateRandomLink = () => {
-    // Real free domains from FreeDNS (afraid.org)
-    const freeDomains = [
-      'mooo.com',
-      'chickenkiller.com',
-      'crabdance.com',
-      'ignorelist.com',
-      'jkub.com',
-      'mywire.org',
-      'redirectme.net',
-      'servebeer.com',
-      'serveftp.com',
-      'servegame.com',
-      'stuff-4-sale.us',
-      'ygto.com',
-      'zapto.org',
-      'ddns.net',
-      'dnsalias.com',
-      'dnsalias.net',
-      'dnsalias.org',
-      'dnsdojo.com',
-      'dnsdojo.net',
-      'dnsdojo.org',
-      'does-it.net',
-      'doesntexist.com',
-      'doesntexist.org',
-      'dontexist.com',
-      'dontexist.net',
-      'dontexist.org',
-      'doomdns.com',
-      'doomdns.org',
-      'dvrdns.org',
-      'dyn-o-saur.com',
-      'dynalias.com',
-      'dynalias.net',
-      'dynalias.org',
-      'dynathome.net',
-      'dyndns.org',
-      'dyndns-at-home.com',
-      'dyndns-at-work.com',
-      'dyndns-blog.com',
-      'dyndns-free.com',
-      'dyndns-home.com',
-      'dyndns-ip.com',
-      'dyndns-mail.com',
-      'dyndns-office.com',
-      'dyndns-pics.com',
-      'dyndns-remote.com',
-      'dyndns-server.com',
-      'dyndns-web.com',
-      'dyndns-wiki.com',
-      'dyndns-work.com',
-      'est-a-la-maison.com',
-      'est-a-la-masion.com',
-      'est-le-patron.com',
-      'est-mon-blogueur.com',
-      'from-ak.com',
-      'from-al.com',
-      'from-ar.com',
-      'from-ca.com',
-      'from-co.net',
-      'from-ct.com',
-      'from-dc.com',
-      'from-de.com',
-      'from-fl.com',
-      'from-ga.com',
-      'from-hi.com',
-      'from-ia.com',
-      'from-id.com',
-      'from-il.com',
-      'from-in.com',
-      'from-ks.com',
-      'from-ky.com',
-      'from-ma.com',
-      'from-md.com',
-      'from-mi.com',
-      'from-mn.com',
-      'from-mo.com',
-      'from-ms.com',
-      'from-mt.com',
-      'from-nc.com',
-      'from-nd.com',
-      'from-ne.com',
-      'from-nh.com',
-      'from-nj.com',
-      'from-nm.com',
-      'from-nv.com',
-      'from-oh.com',
-      'from-ok.com',
-      'from-or.com',
-      'from-pa.com',
-      'from-pr.com',
-      'from-ri.com',
-      'from-sc.com',
-      'from-sd.com',
-      'from-tn.com',
-      'from-tx.com',
-      'from-ut.com',
-      'from-va.com',
-      'from-vt.com',
-      'from-wa.com',
-      'from-wi.com',
-      'from-wv.com',
-      'from-wy.com',
-      'getmyip.com',
-      'gotdns.com',
-      'gotdns.org',
-      'groks-the.info',
-      'groks-this.info',
-      'here-for-more.info',
-      'homeftp.net',
-      'homeftp.org',
-      'homeip.net',
-      'homelinux.com',
-      'homelinux.net',
-      'homelinux.org',
-      'homeunix.com',
-      'homeunix.net',
-      'homeunix.org',
-      'iamallama.com',
-      'in-the-band.net',
-      'is-a-anarchist.com',
-      'is-a-blogger.com',
-      'is-a-bookkeeper.com',
-      'is-a-bruinsfan.org',
-      'is-a-bulls-fan.com',
-      'is-a-candidate.org',
-      'is-a-caterer.com',
-      'is-a-celticsfan.org',
-      'is-a-chef.com',
-      'is-a-chef.net',
-      'is-a-chef.org',
-      'is-a-conservative.com',
-      'is-a-cpa.com',
-      'is-a-cubicle-slave.com',
-      'is-a-democrat.com',
-      'is-a-designer.com',
-      'is-a-doctor.com',
-      'is-a-financialadvisor.com',
-      'is-a-geek.com',
-      'is-a-geek.net',
-      'is-a-geek.org',
-      'is-a-green.com',
-      'is-a-guru.com',
-      'is-a-hard-worker.com',
-      'is-a-hunter.com',
-      'is-a-knight.org',
-      'is-a-landscaper.com',
-      'is-a-lawyer.com',
-      'is-a-liberal.com',
-      'is-a-libertarian.com',
-      'is-a-linux-user.org',
-      'is-a-llama.com',
-      'is-a-musician.com',
-      'is-a-nascarfan.com',
-      'is-a-nurse.com',
-      'is-a-painter.com',
-      'is-a-patsfan.org',
-      'is-a-personaltrainer.com',
-      'is-a-photographer.com',
-      'is-a-player.com',
-      'is-a-republican.com',
-      'is-a-rockstar.com',
-      'is-a-socialist.com',
-      'is-a-soxfan.org',
-      'is-a-student.com',
-      'is-a-teacher.com',
-      'is-a-techie.com',
-      'is-a-therapist.com',
-      'is-an-accountant.com',
-      'is-an-actor.com',
-      'is-an-actress.com',
-      'is-an-anarchist.com',
-      'is-an-artist.com',
-      'is-an-engineer.com',
-      'is-an-entertainer.com',
-      'is-by.us',
-      'is-certified.com',
-      'is-found.org',
-      'is-gone.com',
-      'is-into-anime.com',
-      'is-into-cars.com',
-      'is-into-cartoons.com',
-      'is-into-games.com',
-      'is-leet.com',
-      'is-lost.org',
-      'is-not-certified.com',
-      'is-saved.org',
-      'is-slick.com',
-      'is-uberleet.com',
-      'is-very-bad.org',
-      'is-very-evil.org',
-      'is-very-good.org',
-      'is-very-nice.org',
-      'is-very-sweet.org',
-      'is-with-theband.com',
-      'isa-geek.com',
-      'isa-geek.net',
-      'isa-geek.org',
-      'isa-hockeynut.com',
-      'issmarterthanyou.com',
-      'isteingeek.de',
-      'istmein.de',
-      'kicks-ass.net',
-      'kicks-ass.org',
-      'knowsitall.info',
-      'land-4-sale.us',
-      'lebtimnetz.de',
-      'leitungsen.de',
-      'likes-pie.com',
-      'likescandy.com',
-      'merseine.nu',
-      'mine.nu',
-      'misconfused.org',
-      'mypets.ws',
-      'myphotos.cc',
-      'neat-url.com',
-      'office-on-the.net',
-      'on-the-web.tv',
-      'podzone.net',
-      'podzone.org',
-      'readmyblog.org',
-      'saves-the-whales.com',
-      'scrapper-site.net',
-      'scrapping.cc',
-      'selfip.biz',
-      'selfip.com',
-      'selfip.info',
-      'selfip.net',
-      'selfip.org',
-      'sells-for-less.com',
-      'sells-for-u.com',
-      'sells-it.net',
-      'sellsyourhome.org',
-      'servebbs.com',
-      'servebbs.net',
-      'servebbs.org',
-      'serveftp.net',
-      'servegame.org',
-      'shacknet.nu',
-      'simple-url.com',
-      'space-to-rent.com',
-      'stuff-4-sale.org',
-      'teaches-yoga.com',
-      'thruhere.net',
-      'traeumtgerade.de',
-      'webhop.biz',
-      'webhop.info',
-      'webhop.net',
-      'webhop.org',
-      'worse-than.tv',
-      'writesthisblog.com'
-    ];
-    
-    const adjectives = ['cool', 'awesome', 'super', 'mega', 'ultra', 'hyper', 'cyber', 'digital', 'virtual', 'quantum', 'stellar', 'cosmic', 'neon', 'turbo', 'epic', 'my', 'the', 'best', 'top', 'pro', 'new', 'fast', 'smart', 'tech', 'web'];
-    const nouns = ['zone', 'hub', 'space', 'world', 'realm', 'domain', 'portal', 'nexus', 'core', 'base', 'site', 'web', 'net', 'link', 'page', 'server', 'host', 'cloud', 'app', 'dev', 'code', 'data', 'info', 'blog', 'home'];
-    
-    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-    const randomNumber = Math.floor(Math.random() * 999);
-    const randomDomain = freeDomains[Math.floor(Math.random() * freeDomains.length)];
-    
-    const subdomain = `${randomAdjective}${randomNoun}${randomNumber}`;
-    return { subdomain, domain: randomDomain, fullUrl: `https://${subdomain}.${randomDomain}` };
-  };
-
-  const handleGenerateLink = () => {
-    setGeneratingLink(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const { subdomain, domain, fullUrl } = generateRandomLink();
-      
-      const newLink: WebsiteLink = {
-        id: `link-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        subdomain,
-        domain,
-        fullUrl,
-        createdAt: { toDate: () => new Date() } as Timestamp,
-        createdBy: auth.currentUser?.uid || 'guest'
-      };
-
-      const updatedLinks = [newLink, ...websiteLinks];
-      setWebsiteLinks(updatedLinks);
-      localStorage.setItem('chillzone_website_links', JSON.stringify(updatedLinks));
-
-      setSuccess('New website link generated successfully!');
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError('Failed to generate link.');
-      console.error(err);
-    } finally {
-      setGeneratingLink(false);
-    }
-  };
-
-  const handleDeleteLink = (id: string) => {
-    try {
-      const updatedLinks = websiteLinks.filter(link => link.id !== id);
-      setWebsiteLinks(updatedLinks);
-      localStorage.setItem('chillzone_website_links', JSON.stringify(updatedLinks));
-      setSuccess('Link deleted successfully!');
-      setTimeout(() => setSuccess(null), 2000);
-    } catch (err) {
-      setError('Failed to delete link.');
-      console.error(err);
-    }
-  };
-
-  const handleCopyLink = (url: string) => {
-    navigator.clipboard.writeText(url);
-    setSuccess('Link copied to clipboard!');
-    setTimeout(() => setSuccess(null), 2000);
-  };
-
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a] text-white">
       {/* Header */}
@@ -775,7 +445,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
       {/* Tabs */}
       <div className="flex border-b border-white/5 px-6 overflow-x-auto custom-scrollbar">
         {[
-          { id: 'links', icon: Link, label: 'Website Links' },
           { id: 'announcements', icon: Megaphone, label: 'Announcements' },
           { id: 'suggestions', icon: Send, label: 'Suggestions' },
           { id: 'appeals', icon: AlertCircle, label: 'Appeals' },
@@ -1213,115 +882,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, isSuperAdmin, 
             </div>
           </div>
         )}
-        {activeTab === 'links' && (
-          <div className="space-y-6">
-            <div className="bg-white/5 rounded-2xl p-6 border border-white/5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                    <Link size={16} className="text-accent" />
-                    Generate New Website Link
-                  </h3>
-                  <p className="text-xs text-neutral-500 mt-2">Create random website URLs similar to FreeDNS</p>
-                </div>
-                <button
-                  onClick={handleGenerateLink}
-                  disabled={generatingLink}
-                  className="flex items-center gap-2 bg-accent hover:bg-accent/80 disabled:opacity-50 text-white font-black uppercase tracking-widest px-6 py-3 rounded-xl transition-all shadow-lg shadow-accent/20"
-                >
-                  {generatingLink ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw size={16} />
-                      Generate Link
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <AnimatePresence>
-                {error && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-                    <AlertCircle size={14} />
-                    {error}
-                  </motion.div>
-                )}
-                {success && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 text-green-500 text-xs font-bold bg-green-500/10 p-3 rounded-xl border border-green-500/20">
-                    <CheckCircle2 size={14} />
-                    {success}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-sm font-black uppercase tracking-widest text-neutral-500">Generated Links ({websiteLinks.length})</h3>
-              {websiteLinks.length === 0 ? (
-                <div className="text-center py-12 text-neutral-600 italic text-sm">
-                  No links generated yet. Click "Generate Link" to create one!
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {websiteLinks.map((link) => (
-                    <div key={link.id} className="bg-white/5 border border-white/5 rounded-2xl p-5 flex items-center justify-between group hover:border-accent/30 transition-all">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-accent/10 border border-accent/20">
-                            <Link size={16} className="text-accent" />
-                          </div>
-                          <div>
-                            <a 
-                              href={link.fullUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-white font-bold hover:text-accent transition-colors flex items-center gap-2"
-                            >
-                              {link.fullUrl}
-                            </a>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] font-mono text-neutral-500">
-                                {link.subdomain}
-                              </span>
-                              <span className="text-[10px] text-neutral-600">•</span>
-                              <span className="text-[10px] font-mono text-neutral-500">
-                                {link.domain}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-[9px] font-mono text-neutral-600 pl-12">
-                          Created: {link.createdAt?.toDate().toLocaleString() || 'Just now'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        <button 
-                          onClick={() => handleCopyLink(link.fullUrl)}
-                          className="p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-all"
-                          title="Copy Link"
-                        >
-                          <Copy size={14} />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteLink(link.id)}
-                          className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all"
-                          title="Delete Link"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {activeTab === 'appeals' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
